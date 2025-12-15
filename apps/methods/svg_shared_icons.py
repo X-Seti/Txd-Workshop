@@ -87,6 +87,52 @@ def svg_to_icon(svg_data: bytes, size: int = 24, color: str = None) -> QIcon: #v
         print(f"Error creating icon: {e}")
 
 
+class SVGIconFactory: #vers 1
+    """
+    SVGIconFactory - Compatibility wrapper for icon creation
+    Provides a class-based interface to SVG icon functions
+    """
+
+    @staticmethod
+    def create_icon(icon_name: str, size: int = 24, color: str = None) -> QIcon:
+        """
+        Create icon by name
+
+        Args:
+            icon_name: Icon identifier (e.g., 'save', 'open', 'close')
+            size: Icon size in pixels
+            color: Optional color override
+
+        Returns:
+            QIcon object
+        """
+        icon_map = {
+            'save': get_save_icon,
+            'open': get_open_icon,
+            'close': get_close_icon,
+            'add': get_add_icon,
+            'remove': get_remove_icon,
+            'edit': get_edit_icon,
+            'view': get_view_icon,
+            'search': get_search_icon,
+            'settings': get_settings_icon,
+            'info': get_info_icon,
+            'warning': get_warning_icon,
+            'error': get_error_icon,
+            'success': get_success_icon,
+            'refresh': get_refresh_icon,
+            'import': get_import_icon,
+            'export': get_export_icon,
+            'trash': get_trash_icon,
+            'folder': get_folder_icon,
+            'file': get_file_icon,
+            'image': get_image_icon,
+            'package': get_package_icon,
+        }
+
+        icon_func = icon_map.get(icon_name.lower(), get_file_icon)
+        return icon_func(size)
+
 # = App icon
 
 def get_app_icon(size: int = 64) -> QIcon: #vers 3
