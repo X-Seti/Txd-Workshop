@@ -24,8 +24,14 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QRect, QByteArray
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QImage, QPainter, QPen, QBrush, QColor, QCursor
 from PyQt6.QtSvg import QSvgRenderer
 
-from apps.method.svg_icon_factory import SVGIconFactory
-from apps.method.txd_context_menu import setup_txd_context_menu
+# Fallback to standalone depends folder
+from apps.methods.txd_versions import ( detect_txd_version, get_platform_name, get_game_from_version, get_version_capabilities, get_platform_capabilities, is_mipmap_supported, is_bumpmap_supported, validate_txd_format, TXDPlatform, detect_platform_from_data)
+
+from apps.methods.txd_versions import (detect_txd_version, get_version_string, get_platform_name, get_platform_capabilities, TXDPlatform, TXDVersion)
+
+from apps.methods.svg_icon_factory import SVGIconFactory
+from apps.methods.txd_context_menu import setup_txd_context_menu
+
 
 try:
     from apps.debug.debug_functions import img_debugger
@@ -38,65 +44,10 @@ except ImportError:
         def success(self, msg): print(f"SUCCESS: {msg}")
     img_debugger = DummyDebugger()
 
-# Add project root to path for standalone mode
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-try:
-    from apps.components.Txd_Editor.apps.method.svg_icon_factory import SVGIconFactory
-except ImportError:
-    try:
-        from apps.method.svg_icon_factory import SVGIconFactory
-    except ImportError:
-        class SVGIconFactory:
-            @staticmethod
-            def _create_icon(svg_data, size=20, color=None):
-                from PyQt6.QtGui import QIcon
-                return QIcon()
-
-
 try:
     from PIL import Image
 except ImportError:
     Image = None
-
-try:
-    # Try main app path first
-    from apps.components.Txd_Editor.apps.method.txd_versions import (
-        detect_txd_version, get_platform_name, get_game_from_version,
-        get_version_capabilities, get_platform_capabilities,
-        is_mipmap_supported, is_bumpmap_supported,
-        validate_txd_format, TXDPlatform, detect_platform_from_data
-    )
-except ImportError:
-    # Fallback to standalone depends folder
-    from apps.method.txd_versions import (
-        detect_txd_version, get_platform_name, get_game_from_version,
-        get_version_capabilities, get_platform_capabilities,
-        is_mipmap_supported, is_bumpmap_supported,
-        validate_txd_format, TXDPlatform, detect_platform_from_data
-    )
-
-try:
-    from apps.components.Txd_Editor.apps.method.txd_versions import (
-        detect_txd_version,
-        get_version_string,
-        get_platform_name,
-        get_platform_capabilities,
-        TXDPlatform,
-        TXDVersion
-    )
-except ModuleNotFoundError:
-    from apps.method.txd_versions import (
-        detect_txd_version,
-        get_version_string,
-        get_platform_name,
-        get_platform_capabilities,
-        TXDPlatform,
-        TXDVersion
-    )
 
 # Import AppSettings
 try:
@@ -8162,15 +8113,9 @@ class TXDWorkshop(QWidget): #vers 3
                     self.main_window.log_message(f"Using serializer...")
 
                 # Try methods folder first (docked/IMG Factory)
-                try:
-                    from apps.methods.txd_serializer import serialize_txd_file
-                    return serialize_txd_file(self.texture_list, target_version, target_device)
-                except ImportError:
-                    # Fallback to depends folder (standalone)
-                    from apps.method.txd_serializer import serialize_txd_file
-                    return serialize_txd_file(self.texture_list, target_version, target_device)
+                from apps.methods.txd_serializer import serialize_txd_file
+                return serialize_txd_file(self.texture_list, target_version, target_device)
 
-            return None
 
         except Exception as e:
             if self.main_window and hasattr(self.main_window, 'log_message'):
@@ -8887,12 +8832,8 @@ class TXDWorkshop(QWidget): #vers 3
             log("-" * 80)
             update_progress(10)
 
-            try:
-                from apps.methods.txd_serializer import TXDSerializer
-                log("Loaded serializer from apps.methods.txd_serializer.py")
-            except ImportError:
-                from apps.method.txd_serializer import TXDSerializer
-                log("Loaded serializer from depends/txd_serializer.py (fallback)")
+            from apps.methods.txd_serializer import TXDSerializer
+            log("Loaded serializer from apps.methods.txd_serializer.py")
 
             serializer = TXDSerializer()
             log("Serializer initialized")
@@ -9619,11 +9560,7 @@ class TXDWorkshop(QWidget): #vers 3
             if not self.texture_list:
                 return None
 
-            # Try to use serializer
-            try:
-                from apps.methods.txd_serializer import TXDSerializer
-            except ImportError:
-                from apps.method.txd_serializer import TXDSerializer
+            from apps.methods.txd_serializer import TXDSerializer
 
             serializer = TXDSerializer()
 
@@ -9695,7 +9632,7 @@ class TXDWorkshop(QWidget): #vers 3
             except ImportError:
                 print("DEBUG: methods/txd_serializer not found, trying depends/")
                 try:
-                    from apps.method.txd_serializer import serialize_txd_file
+                    from apps.methods.txd_serializer import serialize_txd_file
                     print("DEBUG: Using depends/txd_serializer")
                 except ImportError:
                     print("DEBUG: ERROR - No serializer found!")
