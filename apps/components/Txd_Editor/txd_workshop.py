@@ -449,6 +449,9 @@ class TXDWorkshop(QWidget): #vers 3
 
         super().__init__(parent)
         self.main_window = main_window
+        self.setWindowTitle(App_name)
+        self.setWindowIcon(SVGIconFactory.txd_workshop_icon())
+        self.icon_factory = SVGIconFactory()
 
         # Initialize app_settings for theme support
         if main_window and hasattr(main_window, 'app_settings'):
@@ -531,6 +534,7 @@ class TXDWorkshop(QWidget): #vers 3
             except Exception as e:
                 img_debugger.warning(f"Could not initialize AppSettings: {e}")
                 self.app_settings = None
+
 
         # Docking state
         self.is_docked = (main_window is not None)
