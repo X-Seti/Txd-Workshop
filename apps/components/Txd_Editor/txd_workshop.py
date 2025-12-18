@@ -855,7 +855,7 @@ class TXDWorkshop(QWidget): #vers 3
         display_layout.addWidget(button_group)
 
         # Table display
-        table_group = QGroupBox("📋 Texture List Display")
+        table_group = QGroupBox("Texture List Display")
         table_layout = QVBoxLayout()
 
         show_thumbnails = QCheckBox("Show texture thumbnails")
@@ -864,7 +864,7 @@ class TXDWorkshop(QWidget): #vers 3
 
         show_warnings = QCheckBox("Show warning icons for suspicious textures")
         show_warnings.setChecked(True)
-        show_warnings.setToolTip("Shows ⚠️ icon if normal and alpha appear identical")
+        show_warnings.setToolTip("Shows warning icon if normal and alpha appear identical")
         table_layout.addWidget(show_warnings)
 
         table_group.setLayout(table_layout)
@@ -10559,460 +10559,415 @@ class TXDWorkshop(QWidget): #vers 3
 
         dialog.exec()
 
-
     #Left side vertical panel
-    def _create_transform_text_panel(self): #vers 11
-        """Create transform panel with variable width - no headers"""
-        self.transform_text_panel = QFrame()
-        self.transform_text_panel.setFrameStyle(QFrame.Shape.StyledPanel)
-        self.transform_text_panel.setMinimumWidth(140)
-        self.transform_text_panel.setMaximumWidth(140)
-        if self.button_display_mode == 'icons':
-            self.transform_text_panel.setMaximumWidth(40)
-            self.transform_text_panel.setMinimumWidth(40)
-            layout.addSpacing(5)
-
-        layout = QVBoxLayout(self.transform_text_panel)
-        #layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
-        Spacer = 7
-        if self.button_display_mode == 'icons':
-            self.flip_vert_btn.setFixedSize(40, 40)
-
-        else:
-            layout.addSpacing(3)
-
-            # Flip Vertical
-            self.flip_vert_btn = QPushButton()
-            self.flip_vert_btn.setFont(self.button_font)
-            self.flip_vert_btn.setText("Flip Vertical")
-            self.flip_vert_btn.clicked.connect(self._flip_vertical)
-            self.flip_vert_btn.setEnabled(False)
-            self.flip_vert_btn.setToolTip("Flip col vertically")
-            layout.addWidget(self.flip_vert_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Flip Horizontal
-            self.flip_horz_btn = QPushButton()
-            self.flip_horz_btn.setFont(self.button_font)
-            self.flip_horz_btn.setText("Flip Horizontal")
-            self.flip_horz_btn.clicked.connect(self._flip_horizontal)
-            self.flip_horz_btn.setEnabled(False)
-            self.flip_horz_btn.setToolTip("Flip col horizontally")
-            layout.addWidget(self.flip_horz_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Rotate Clockwise
-            self.rotate_cw_btn = QPushButton()
-            self.rotate_cw_btn.setFont(self.button_font)
-            self.rotate_cw_btn.setText("Rotate 90° CW")
-            self.rotate_cw_btn.clicked.connect(self._rotate_clockwise)
-            self.rotate_cw_btn.setEnabled(False)
-            self.rotate_cw_btn.setToolTip("Rotate 90 degrees clockwise")
-            layout.addWidget(self.rotate_cw_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Rotate Counter-Clockwise
-            self.rotate_ccw_btn = QPushButton()
-            self.rotate_ccw_btn.setFont(self.button_font)
-            self.rotate_ccw_btn.setText("Rotate 90° CCW")
-            self.rotate_ccw_btn.clicked.connect(self._rotate_counterclockwise)
-            self.rotate_ccw_btn.setEnabled(False)
-            self.rotate_ccw_btn.setToolTip("Rotate 90 degrees counter-clockwise")
-            layout.addWidget(self.rotate_ccw_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Copy
-            self.copy_btn = QPushButton()
-            self.copy_btn.setFont(self.button_font)
-            self.copy_btn.setIcon(self._create_copy_icon())
-            self.copy_btn.setText("Copy")
-            self.copy_btn.clicked.connect(self._copy_texture)
-            self.copy_btn.setEnabled(False)
-            self.copy_btn.setToolTip("Copy texture to clipboard")
-            layout.addWidget(self.copy_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Paste
-            self.paste_btn = QPushButton()
-            self.paste_btn.setFont(self.button_font)
-            self.paste_btn.setIcon(self._create_paste_icon())
-            self.paste_btn.setText("Paste")
-            self.paste_btn.clicked.connect(self._paste_texture)
-            self.paste_btn.setEnabled(False)
-            self.paste_btn.setToolTip("Paste texture from clipboard")
-            layout.addWidget(self.paste_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Create Texture
-            self.create_texture_btn = QPushButton()
-            self.create_texture_btn.setFont(self.button_font)
-            self.create_texture_btn.setIcon(self._create_create_icon())
-            self.create_texture_btn.setText("Create")
-            self.create_texture_btn.clicked.connect(self._create_new_texture_entry)
-            self.create_texture_btn.setToolTip("Create new blank texture")
-            layout.addWidget(self.create_texture_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Delete Texture
-            self.delete_texture_btn = QPushButton()
-            self.delete_texture_btn.setFont(self.button_font)
-            self.delete_texture_btn.setIcon(self._create_delete_icon())
-            self.delete_texture_btn.setText("Delete")
-            self.delete_texture_btn.clicked.connect(self._delete_texture)
-            self.delete_texture_btn.setEnabled(False)
-            self.delete_texture_btn.setToolTip("Remove selected texture")
-            layout.addWidget(self.delete_texture_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Duplicate Texture
-            self.duplicate_texture_btn = QPushButton()
-            self.duplicate_texture_btn.setFont(self.button_font)
-            self.duplicate_texture_btn.setIcon(self._create_duplicate_icon())
-            self.duplicate_texture_btn.setText("Duplicate")
-            self.duplicate_texture_btn.clicked.connect(self._duplicate_texture)
-            self.duplicate_texture_btn.setEnabled(False)
-            self.duplicate_texture_btn.setToolTip("Clone selected texture")
-            layout.addWidget(self.duplicate_texture_btn)
-
-            layout.addSpacing(Spacer)
-
-            self.paint_btn = QPushButton()
-            self.paint_btn.setFont(self.button_font)
-            self.paint_btn.setIcon(self._create_paint_icon())
-            self.paint_btn.setText("Paint")
-            self.paint_btn.clicked.connect(self._open_paint_editor)
-            self.paint_btn.setEnabled(False)
-            self.paint_btn.setToolTip("Paint on texture")
-            layout.addWidget(self.paint_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Check TXD vs DFF
-            self.check_dff_btn = QPushButton()
-            self.check_dff_btn.setFont(self.button_font)
-            self.check_dff_btn.setIcon(self._create_check_icon())
-            self.check_dff_btn.setText("Check DFF")
-            self.check_dff_btn.clicked.connect(self._check_txd_vs_dff)
-            self.check_dff_btn.setToolTip("Verify textures against DFF model file")
-            layout.addWidget(self.check_dff_btn)
-
-            layout.addSpacing(Spacer)
-
-            self.build_from_dff_btn = QPushButton()
-            self.build_from_dff_btn.setFont(self.button_font)
-            self.build_from_dff_btn.setIcon(self._create_build_icon())
-            self.build_from_dff_btn.setText("Build TXD via")
-            self.build_from_dff_btn.clicked.connect(self._build_txd_from_dff)
-            self.build_from_dff_btn.setToolTip("Create TXD structure from DFF material names")
-            layout.addWidget(self.build_from_dff_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Filters
-            self.filters_btn = QPushButton()
-            self.filters_btn.setFont(self.button_font)
-            self.filters_btn.setIcon(self._create_filter_icon())
-            self.filters_btn.setText("Filters")
-            self.filters_btn.clicked.connect(self._open_filters_dialog)
-            self.filters_btn.setEnabled(False)
-            self.filters_btn.setToolTip("Brightness, Contrast, Saturation")
-            layout.addWidget(self.filters_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Switch button
-            self.switch_btn = QPushButton("Normal")
-            self.switch_btn.setFont(self.button_font)
-            self.switch_btn.setIcon(self._create_flip_vert_icon())
-            self.switch_btn.clicked.connect(self.switch_texture_view)
-            self.switch_btn.setEnabled(False)
-            self.switch_btn.setToolTip("Cycle: Normal → Alpha → Both → Overlay")
-            layout.addWidget(self.switch_btn)
-
-            layout.addSpacing(Spacer)
-
-            # [Inv] button - FIXED: Smaller fixed width to ensure visibility
-            self.invert_btn = QPushButton("Invert Alpha Mask")
-            self.invert_btn.setFont(self.button_font)
-            self.invert_btn.clicked.connect(self._toggle_alpha_invert)
-            self.invert_btn.setEnabled(False)
-            self.invert_btn.setToolTip("Invert alpha channel colors")
-            self.invert_btn.setCheckable(True)
-            layout.addWidget(self.invert_btn)
-
-            layout.addSpacing(Spacer)
-
-            # [+] button - FIXED: Ensure minimum size
-            self.gen_alpha_btn = QPushButton("Generate Alpha")
-            self.gen_alpha_btn.setFont(self.button_font)
-            self.gen_alpha_btn.clicked.connect(self._generate_alpha_mask)
-            self.gen_alpha_btn.setEnabled(False)
-            self.gen_alpha_btn.setToolTip("Generate alpha mask from luminosity")
-            layout.addWidget(self.gen_alpha_btn)
-
-            layout.addSpacing(Spacer)
-
-            # Properties button
-            self.props_btn = QPushButton()
-            self.props_btn.setFont(self.button_font)
-            self.props_btn.setIcon(self._create_properties_icon())
-            self.props_btn.setText("Tex Properties")
-            self.props_btn.clicked.connect(self.show_properties)
-            self.props_btn.setEnabled(False)
-            self.props_btn.setToolTip("Show texture properties")
-            layout.addWidget(self.props_btn)
-
-            layout.addStretch()
-
-            return self.transform_text_panel
-
-
-    def _create_transform_icon_panel(self): #vers 11
-        """Create transform panel with variable width - no headers"""
+    def _create_transform_icon_panel(self): #vers 12
+        """Create transform panel with icons - aligned with text panel"""
         self.transform_icon_panel = QFrame()
         self.transform_icon_panel.setFrameStyle(QFrame.Shape.StyledPanel)
-        self.transform_icon_panel.setMinimumWidth(50)
-        self.transform_icon_panel.setMaximumWidth(50)
-        #self.transform_icon_panel.setContentsMargins(5, 5, 5, 5)
-        if self.button_display_mode == 'icons':
-            self.transform_icon_panel.setMaximumWidth(40)
-            self.transform_icon_panel.setMinimumWidth(40)
-            layout.addSpacing(5)
+        self.transform_icon_panel.setMinimumWidth(45)
+        self.transform_icon_panel.setMaximumWidth(45)
 
         layout = QVBoxLayout(self.transform_icon_panel)
-        #layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(4)
-        iconspacer = 0
+        layout.setContentsMargins(3, 5, 3, 5)
+        layout.setSpacing(1)
 
-        layout.addSpacing(iconspacer)
+        btn_height = 32
+        btn_width = 40
+        icon_size = QSize(20, 20)
+        spacer = 3
+
+        layout.addSpacing(2)
 
         # Flip Vertical
         self.flip_vert_btn = QPushButton()
         self.flip_vert_btn.setIcon(self._create_flip_vert_icon())
-        self.flip_vert_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.flip_vert_btn.setFixedSize(40, 40)
+        self.flip_vert_btn.setIconSize(icon_size)
+        self.flip_vert_btn.setFixedHeight(btn_height)
+        self.flip_vert_btn.setMinimumWidth(btn_width)
         self.flip_vert_btn.clicked.connect(self._flip_vertical)
         self.flip_vert_btn.setEnabled(False)
         self.flip_vert_btn.setToolTip("Flip texture vertically")
         layout.addWidget(self.flip_vert_btn)
-
-        layout.addSpacing(iconspacer)
+        layout.addSpacing(spacer)
 
         # Flip Horizontal
         self.flip_horz_btn = QPushButton()
         self.flip_horz_btn.setIcon(self._create_flip_horz_icon())
-        self.flip_horz_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.flip_horz_btn.setFixedSize(40, 40)
+        self.flip_horz_btn.setIconSize(icon_size)
+        self.flip_horz_btn.setFixedHeight(btn_height)
+        self.flip_horz_btn.setMinimumWidth(btn_width)
         self.flip_horz_btn.clicked.connect(self._flip_horizontal)
         self.flip_horz_btn.setEnabled(False)
         self.flip_horz_btn.setToolTip("Flip texture horizontally")
         layout.addWidget(self.flip_horz_btn)
-
-        layout.addSpacing(iconspacer)
+        layout.addSpacing(spacer)
 
         # Rotate Clockwise
         self.rotate_cw_btn = QPushButton()
         self.rotate_cw_btn.setIcon(self._create_rotate_cw_icon())
-        self.rotate_cw_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.rotate_cw_btn.setFixedSize(40, 40)
+        self.rotate_cw_btn.setIconSize(icon_size)
+        self.rotate_cw_btn.setFixedHeight(btn_height)
+        self.rotate_cw_btn.setMinimumWidth(btn_width)
         self.rotate_cw_btn.clicked.connect(self._rotate_clockwise)
         self.rotate_cw_btn.setEnabled(False)
         self.rotate_cw_btn.setToolTip("Rotate 90 degrees clockwise")
         layout.addWidget(self.rotate_cw_btn)
-
-        layout.addSpacing(iconspacer)
+        layout.addSpacing(spacer)
 
         # Rotate Counter-Clockwise
         self.rotate_ccw_btn = QPushButton()
         self.rotate_ccw_btn.setIcon(self._create_rotate_ccw_icon())
-        self.rotate_ccw_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.rotate_ccw_btn.setFixedSize(40, 40)
+        self.rotate_ccw_btn.setIconSize(icon_size)
+        self.rotate_ccw_btn.setFixedHeight(btn_height)
+        self.rotate_ccw_btn.setMinimumWidth(btn_width)
         self.rotate_ccw_btn.clicked.connect(self._rotate_counterclockwise)
         self.rotate_ccw_btn.setEnabled(False)
         self.rotate_ccw_btn.setToolTip("Rotate 90 degrees counter-clockwise")
         layout.addWidget(self.rotate_ccw_btn)
-
-        layout.addSpacing(iconspacer)
+        layout.addSpacing(spacer)
 
         # Copy
         self.copy_btn = QPushButton()
         self.copy_btn.setIcon(self._create_copy_icon())
-        self.copy_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.copy_btn.setFixedSize(40, 40)
+        self.copy_btn.setIconSize(icon_size)
+        self.copy_btn.setFixedHeight(btn_height)
+        self.copy_btn.setMinimumWidth(btn_width)
         self.copy_btn.clicked.connect(self._copy_texture)
         self.copy_btn.setEnabled(False)
         self.copy_btn.setToolTip("Copy texture to clipboard")
         layout.addWidget(self.copy_btn)
-
-        layout.addSpacing(iconspacer)
+        layout.addSpacing(spacer)
 
         # Paste
         self.paste_btn = QPushButton()
         self.paste_btn.setIcon(self._create_paste_icon())
-        self.paste_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.paste_btn.setFixedSize(40, 40)
+        self.paste_btn.setIconSize(icon_size)
+        self.paste_btn.setFixedHeight(btn_height)
+        self.paste_btn.setMinimumWidth(btn_width)
         self.paste_btn.clicked.connect(self._paste_texture)
         self.paste_btn.setEnabled(False)
         self.paste_btn.setToolTip("Paste texture from clipboard")
         layout.addWidget(self.paste_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # Create Texture
+        # Create
         self.create_texture_btn = QPushButton()
         self.create_texture_btn.setIcon(self._create_create_icon())
-        self.create_texture_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.create_texture_btn.setFixedSize(40, 40)
+        self.create_texture_btn.setIconSize(icon_size)
+        self.create_texture_btn.setFixedHeight(btn_height)
+        self.create_texture_btn.setMinimumWidth(btn_width)
         self.create_texture_btn.clicked.connect(self._create_new_texture_entry)
         self.create_texture_btn.setToolTip("Create new blank texture")
         layout.addWidget(self.create_texture_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # Delete Texture
+        # Delete
         self.delete_texture_btn = QPushButton()
         self.delete_texture_btn.setIcon(self._create_delete_icon())
-        self.delete_texture_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.delete_texture_btn.setFixedSize(40, 40)
+        self.delete_texture_btn.setIconSize(icon_size)
+        self.delete_texture_btn.setFixedHeight(btn_height)
+        self.delete_texture_btn.setMinimumWidth(btn_width)
         self.delete_texture_btn.clicked.connect(self._delete_texture)
         self.delete_texture_btn.setEnabled(False)
         self.delete_texture_btn.setToolTip("Remove selected texture")
         layout.addWidget(self.delete_texture_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # Duplicate Texture
+        # Duplicate
         self.duplicate_texture_btn = QPushButton()
         self.duplicate_texture_btn.setIcon(self._create_duplicate_icon())
-        self.duplicate_texture_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.duplicate_texture_btn.setFixedSize(40, 40)
+        self.duplicate_texture_btn.setIconSize(icon_size)
+        self.duplicate_texture_btn.setFixedHeight(btn_height)
+        self.duplicate_texture_btn.setMinimumWidth(btn_width)
         self.duplicate_texture_btn.clicked.connect(self._duplicate_texture)
         self.duplicate_texture_btn.setEnabled(False)
         self.duplicate_texture_btn.setToolTip("Clone selected texture")
         layout.addWidget(self.duplicate_texture_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
+        # Paint
         self.paint_btn = QPushButton()
         self.paint_btn.setIcon(self._create_paint_icon())
-        self.paint_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.paint_btn.setFixedSize(40, 40)
+        self.paint_btn.setIconSize(icon_size)
+        self.paint_btn.setFixedHeight(btn_height)
+        self.paint_btn.setMinimumWidth(btn_width)
         self.paint_btn.clicked.connect(self._open_paint_editor)
         self.paint_btn.setEnabled(False)
         self.paint_btn.setToolTip("Paint on texture")
         layout.addWidget(self.paint_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # Check TXD vs DFF
+        # Check DFF
         self.check_dff_btn = QPushButton()
         self.check_dff_btn.setIcon(self._create_check_icon())
-        self.check_dff_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.check_dff_btn.setFixedSize(40, 40)
+        self.check_dff_btn.setIconSize(icon_size)
+        self.check_dff_btn.setFixedHeight(btn_height)
+        self.check_dff_btn.setMinimumWidth(btn_width)
         self.check_dff_btn.clicked.connect(self._check_txd_vs_dff)
         self.check_dff_btn.setToolTip("Verify textures against DFF model file")
         layout.addWidget(self.check_dff_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
+        # Build from DFF
         self.build_from_dff_btn = QPushButton()
         self.build_from_dff_btn.setIcon(self._create_build_icon())
-        self.build_from_dff_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.build_from_dff_btn.setFixedSize(40, 40)
+        self.build_from_dff_btn.setIconSize(icon_size)
+        self.build_from_dff_btn.setFixedHeight(btn_height)
+        self.build_from_dff_btn.setMinimumWidth(btn_width)
         self.build_from_dff_btn.clicked.connect(self._build_txd_from_dff)
         self.build_from_dff_btn.setToolTip("Create TXD structure from DFF material names")
         layout.addWidget(self.build_from_dff_btn)
-
-        layout.addSpacing(iconspacer)
+        layout.addSpacing(spacer)
 
         # Filters
         self.filters_btn = QPushButton()
         self.filters_btn.setIcon(self._create_filter_icon())
-        self.filters_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.filters_btn.setFixedSize(40, 40)
+        self.filters_btn.setIconSize(icon_size)
+        self.filters_btn.setFixedHeight(btn_height)
+        self.filters_btn.setMinimumWidth(btn_width)
         self.filters_btn.clicked.connect(self._open_filters_dialog)
         self.filters_btn.setEnabled(False)
         self.filters_btn.setToolTip("Brightness, Contrast, Saturation")
         layout.addWidget(self.filters_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # Switch button
+        # Switch
         self.switch_btn = QPushButton()
         self.switch_btn.setIcon(self._create_flip_vert_icon())
-        self.switch_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.switch_btn.setFixedSize(40, 40)
+        self.switch_btn.setIconSize(icon_size)
+        self.switch_btn.setFixedHeight(btn_height)
+        self.switch_btn.setMinimumWidth(btn_width)
         self.switch_btn.clicked.connect(self.switch_texture_view)
         self.switch_btn.setEnabled(False)
         self.switch_btn.setToolTip("Cycle: Normal → Alpha → Both → Overlay")
         layout.addWidget(self.switch_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # [Inv] button - FIXED: Smaller fixed width to ensure visibility
+        # Invert Alpha
         self.invert_btn = QPushButton()
         self.invert_btn.setIcon(self.icon_factory.build_icon())
-        self.invert_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.invert_btn.setFixedSize(40, 40)
+        self.invert_btn.setIconSize(icon_size)
+        self.invert_btn.setFixedHeight(btn_height)
+        self.invert_btn.setMinimumWidth(btn_width)
         self.invert_btn.clicked.connect(self._toggle_alpha_invert)
         self.invert_btn.setEnabled(False)
         self.invert_btn.setToolTip("Invert alpha channel colors")
         self.invert_btn.setCheckable(True)
         layout.addWidget(self.invert_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # [+] button - FIXED: Ensure minimum size
+        # Generate Alpha
         self.gen_alpha_btn = QPushButton()
         self.gen_alpha_btn.setIcon(self.icon_factory.paint_icon())
-        self.gen_alpha_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.gen_alpha_btn.setFixedSize(40, 40)
+        self.gen_alpha_btn.setIconSize(icon_size)
+        self.gen_alpha_btn.setFixedHeight(btn_height)
+        self.gen_alpha_btn.setMinimumWidth(btn_width)
         self.gen_alpha_btn.clicked.connect(self._generate_alpha_mask)
         self.gen_alpha_btn.setEnabled(False)
         self.gen_alpha_btn.setToolTip("Generate alpha mask from luminosity")
         layout.addWidget(self.gen_alpha_btn)
+        layout.addSpacing(spacer)
 
-        layout.addSpacing(iconspacer)
-
-        # Properties button
+        # Properties
         self.props_btn = QPushButton()
         self.props_btn.setIcon(self.icon_factory.properties_icon())
-        self.props_btn.setIconSize(QSize(30, 30))
-        if self.button_display_mode == 'icons':
-            self.props_btn.setFixedSize(40, 40)
+        self.props_btn.setIconSize(icon_size)
+        self.props_btn.setFixedHeight(btn_height)
+        self.props_btn.setMinimumWidth(btn_width)
         self.props_btn.clicked.connect(self.show_properties)
         self.props_btn.setEnabled(False)
         self.props_btn.setToolTip("Show texture properties")
         layout.addWidget(self.props_btn)
 
-        layout.addSpacing(iconspacer)
-
+        layout.addStretch()
         return self.transform_icon_panel
+
+
+    def _create_transform_text_panel(self): #vers 12
+        """Create transform panel with text - aligned with icon panel"""
+        self.transform_text_panel = QFrame()
+        self.transform_text_panel.setFrameStyle(QFrame.Shape.StyledPanel)
+        self.transform_text_panel.setMinimumWidth(140)
+        self.transform_text_panel.setMaximumWidth(140)
+
+        layout = QVBoxLayout(self.transform_text_panel)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(1)
+
+        btn_height = 32
+        spacer = 3
+
+        layout.addSpacing(2)
+
+        # Flip Vertical
+        self.flip_vert_btn = QPushButton("Flip Vertical")
+        self.flip_vert_btn.setFont(self.button_font)
+        self.flip_vert_btn.setFixedHeight(btn_height)
+        self.flip_vert_btn.clicked.connect(self._flip_vertical)
+        self.flip_vert_btn.setEnabled(False)
+        self.flip_vert_btn.setToolTip("Flip texture vertically")
+        layout.addWidget(self.flip_vert_btn)
+        layout.addSpacing(spacer)
+
+        # Flip Horizontal
+        self.flip_horz_btn = QPushButton("Flip Horizontal")
+        self.flip_horz_btn.setFont(self.button_font)
+        self.flip_horz_btn.setFixedHeight(btn_height)
+        self.flip_horz_btn.clicked.connect(self._flip_horizontal)
+        self.flip_horz_btn.setEnabled(False)
+        self.flip_horz_btn.setToolTip("Flip texture horizontally")
+        layout.addWidget(self.flip_horz_btn)
+        layout.addSpacing(spacer)
+
+        # Rotate Clockwise
+        self.rotate_cw_btn = QPushButton("Rotate 90° CW")
+        self.rotate_cw_btn.setFont(self.button_font)
+        self.rotate_cw_btn.setFixedHeight(btn_height)
+        self.rotate_cw_btn.clicked.connect(self._rotate_clockwise)
+        self.rotate_cw_btn.setEnabled(False)
+        self.rotate_cw_btn.setToolTip("Rotate 90 degrees clockwise")
+        layout.addWidget(self.rotate_cw_btn)
+        layout.addSpacing(spacer)
+
+        # Rotate Counter-Clockwise
+        self.rotate_ccw_btn = QPushButton("Rotate 90° CCW")
+        self.rotate_ccw_btn.setFont(self.button_font)
+        self.rotate_ccw_btn.setFixedHeight(btn_height)
+        self.rotate_ccw_btn.clicked.connect(self._rotate_counterclockwise)
+        self.rotate_ccw_btn.setEnabled(False)
+        self.rotate_ccw_btn.setToolTip("Rotate 90 degrees counter-clockwise")
+        layout.addWidget(self.rotate_ccw_btn)
+        layout.addSpacing(spacer)
+
+        # Copy
+        self.copy_btn = QPushButton("Copy")
+        self.copy_btn.setFont(self.button_font)
+        self.copy_btn.setFixedHeight(btn_height)
+        self.copy_btn.clicked.connect(self._copy_texture)
+        self.copy_btn.setEnabled(False)
+        self.copy_btn.setToolTip("Copy texture to clipboard")
+        layout.addWidget(self.copy_btn)
+        layout.addSpacing(spacer)
+
+        # Paste
+        self.paste_btn = QPushButton("Paste")
+        self.paste_btn.setFont(self.button_font)
+        self.paste_btn.setFixedHeight(btn_height)
+        self.paste_btn.clicked.connect(self._paste_texture)
+        self.paste_btn.setEnabled(False)
+        self.paste_btn.setToolTip("Paste texture from clipboard")
+        layout.addWidget(self.paste_btn)
+        layout.addSpacing(spacer)
+
+        # Create
+        self.create_texture_btn = QPushButton("Create")
+        self.create_texture_btn.setFont(self.button_font)
+        self.create_texture_btn.setFixedHeight(btn_height)
+        self.create_texture_btn.clicked.connect(self._create_new_texture_entry)
+        self.create_texture_btn.setToolTip("Create new blank texture")
+        layout.addWidget(self.create_texture_btn)
+        layout.addSpacing(spacer)
+
+        # Delete
+        self.delete_texture_btn = QPushButton("Delete")
+        self.delete_texture_btn.setFont(self.button_font)
+        self.delete_texture_btn.setFixedHeight(btn_height)
+        self.delete_texture_btn.clicked.connect(self._delete_texture)
+        self.delete_texture_btn.setEnabled(False)
+        self.delete_texture_btn.setToolTip("Remove selected texture")
+        layout.addWidget(self.delete_texture_btn)
+        layout.addSpacing(spacer)
+
+        # Duplicate
+        self.duplicate_texture_btn = QPushButton("Duplicate")
+        self.duplicate_texture_btn.setFont(self.button_font)
+        self.duplicate_texture_btn.setFixedHeight(btn_height)
+        self.duplicate_texture_btn.clicked.connect(self._duplicate_texture)
+        self.duplicate_texture_btn.setEnabled(False)
+        self.duplicate_texture_btn.setToolTip("Clone selected texture")
+        layout.addWidget(self.duplicate_texture_btn)
+        layout.addSpacing(spacer)
+
+        # Paint
+        self.paint_btn = QPushButton("Paint")
+        self.paint_btn.setFont(self.button_font)
+        self.paint_btn.setFixedHeight(btn_height)
+        self.paint_btn.clicked.connect(self._open_paint_editor)
+        self.paint_btn.setEnabled(False)
+        self.paint_btn.setToolTip("Paint on texture")
+        layout.addWidget(self.paint_btn)
+        layout.addSpacing(spacer)
+
+        # Check DFF
+        self.check_dff_btn = QPushButton("Check DFF")
+        self.check_dff_btn.setFont(self.button_font)
+        self.check_dff_btn.setFixedHeight(btn_height)
+        self.check_dff_btn.clicked.connect(self._check_txd_vs_dff)
+        self.check_dff_btn.setToolTip("Verify textures against DFF model file")
+        layout.addWidget(self.check_dff_btn)
+        layout.addSpacing(spacer)
+
+        # Build from DFF
+        self.build_from_dff_btn = QPushButton("Build TXD via")
+        self.build_from_dff_btn.setFont(self.button_font)
+        self.build_from_dff_btn.setFixedHeight(btn_height)
+        self.build_from_dff_btn.clicked.connect(self._build_txd_from_dff)
+        self.build_from_dff_btn.setToolTip("Create TXD structure from DFF material names")
+        layout.addWidget(self.build_from_dff_btn)
+        layout.addSpacing(spacer)
+
+        # Filters
+        self.filters_btn = QPushButton("Filters")
+        self.filters_btn.setFont(self.button_font)
+        self.filters_btn.setFixedHeight(btn_height)
+        self.filters_btn.clicked.connect(self._open_filters_dialog)
+        self.filters_btn.setEnabled(False)
+        self.filters_btn.setToolTip("Brightness, Contrast, Saturation")
+        layout.addWidget(self.filters_btn)
+        layout.addSpacing(spacer)
+
+        # Switch
+        self.switch_btn = QPushButton("Normal")
+        self.switch_btn.setFont(self.button_font)
+        self.switch_btn.setFixedHeight(btn_height)
+        self.switch_btn.clicked.connect(self.switch_texture_view)
+        self.switch_btn.setEnabled(False)
+        self.switch_btn.setToolTip("Cycle: Normal → Alpha → Both → Overlay")
+        layout.addWidget(self.switch_btn)
+        layout.addSpacing(spacer)
+
+        # Invert Alpha
+        self.invert_btn = QPushButton("Invert Alpha Mask")
+        self.invert_btn.setFont(self.button_font)
+        self.invert_btn.setFixedHeight(btn_height)
+        self.invert_btn.clicked.connect(self._toggle_alpha_invert)
+        self.invert_btn.setEnabled(False)
+        self.invert_btn.setToolTip("Invert alpha channel colors")
+        self.invert_btn.setCheckable(True)
+        layout.addWidget(self.invert_btn)
+        layout.addSpacing(spacer)
+
+        # Generate Alpha
+        self.gen_alpha_btn = QPushButton("Generate Alpha")
+        self.gen_alpha_btn.setFont(self.button_font)
+        self.gen_alpha_btn.setFixedHeight(btn_height)
+        self.gen_alpha_btn.clicked.connect(self._generate_alpha_mask)
+        self.gen_alpha_btn.setEnabled(False)
+        self.gen_alpha_btn.setToolTip("Generate alpha mask from luminosity")
+        layout.addWidget(self.gen_alpha_btn)
+        layout.addSpacing(spacer)
+
+        # Properties
+        self.props_btn = QPushButton("Tex Properties")
+        self.props_btn.setFont(self.button_font)
+        self.props_btn.setFixedHeight(btn_height)
+        self.props_btn.clicked.connect(self.show_properties)
+        self.props_btn.setEnabled(False)
+        self.props_btn.setToolTip("Show texture properties")
+        layout.addWidget(self.props_btn)
+
+        layout.addStretch()
+        return self.transform_text_panel
 
 
     def _edit_texture(self): #vers 1
