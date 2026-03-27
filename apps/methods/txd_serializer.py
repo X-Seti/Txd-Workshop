@@ -303,7 +303,7 @@ class TXDSerializer: #vers 1
     
 
 
-    def _parse_single_texture(self, txd_data, offset, index): #vers 5
+    def _parse_single_texture(self, txd_data, offset, index, rw_version=0x1803FFFF): #vers 6
         """
         Parse single texture from TXD - FIXED: Preserves original binary data to prevent corruption
 
@@ -391,32 +391,106 @@ class TXDSerializer: #vers 1
 
             pos += 15
 
-            # Determine format from raster_format_flags
-            format_code = raster_format_flags & 0xFFFF
+            # Determine format from raster_format_flags + d3d_format
+            # raster_format bit layout (all RW versions):
+            #   bits 8-11: pixel format (0x0100=C1555, 0x0200=C565, 0x0300=C4444,
+            #               0x0400=LUM8, 0x0500=C8888, 0x0600=C888, 0x0A00=C555)
+            #   0x1000: FORMAT_EXT_AUTO_MIPMAP (RW auto-generates mipmaps)
+            #   0x2000: FORMAT_EXT_PAL8  (256-colour palette)
+            #   0x4000: FORMAT_EXT_PAL4  (16-colour palette)
+            #   0x8000: FORMAT_EXT_MIPMAP (mipmaps included in data)
+            #   0x10000: RASTER_SWIZZLED (PS2)
+            # For SA+ (rw >= 0x1803FFFF): d3d_format is a real D3D format code
+            # For GTA3/VC (rw < 0x1803FFFF): d3d_format field is unreliable - use raster_format
 
-            format_map = {
-                0x31545844: 'DXT1',  # 'DXT1' fourcc
-                0x33545844: 'DXT3',  # 'DXT3' fourcc
-                0x35545844: 'DXT5',  # 'DXT5' fourcc
-                0x15: 'ARGB8888',
-                0x14: 'RGB888',
-                0x02: 'ARGB1555',
-                0x01: 'RGB565',
-                0x05: 'PAL8',
+            is_pal8     = bool(raster_format_flags & 0x2000)  # FORMAT_EXT_PAL8
+            is_pal4     = bool(raster_format_flags & 0x4000)  # FORMAT_EXT_PAL4
+            is_mipmap   = bool(raster_format_flags & 0x8000)  # FORMAT_EXT_MIPMAP
+            is_swizzled = bool(raster_format_flags & 0x10000) # RASTER_SWIZZLED
+            pixel_fmt   = raster_format_flags & 0x0F00  # pixel format in bits 8-11 (0x0100-0x0A00)
+            is_sa_plus  = (rw_version >= 0x1803FFFF)
+
+            tex['has_mipmaps'] = is_mipmap
+            tex['is_swizzled'] = is_swizzled
+
+            raster_pixel_map = {
+                0x0100: 'ARGB1555',
+                0x0200: 'RGB565',
+                0x0300: 'ARGB4444',
+                0x0400: 'LUM8',
+                0x0500: 'ARGB8888',
+                0x0600: 'RGB888',
+                0x0A00: 'RGB555',
             }
 
-            tex['format'] = format_map.get(format_code, 'DXT1')
+            # PAL types always use raster_format flags
+            if is_pal8:
+                tex['format'] = 'PAL8'
+                tex['palette_entry_format'] = raster_pixel_map.get(pixel_fmt, 'ARGB8888')
+            elif is_pal4:
+                tex['format'] = 'PAL4'
+                tex['palette_entry_format'] = raster_pixel_map.get(pixel_fmt, 'ARGB8888')
+            # DXT - fourcc in d3d_format, valid for all versions
+            elif d3d_format == 0x31545844:
+                tex['format'] = 'DXT1'
+            elif d3d_format == 0x32545844:
+                tex['format'] = 'DXT2'
+            elif d3d_format == 0x33545844:
+                tex['format'] = 'DXT3'
+            elif d3d_format == 0x34545844:
+                tex['format'] = 'DXT4'
+            elif d3d_format == 0x35545844:
+                tex['format'] = 'DXT5'
+            elif is_sa_plus:
+                # SA+: d3d_format is a real D3D format code
+                d3d_fmt_map = {
+                    21: 'ARGB8888', 32: 'ARGB8888',  # A8R8G8B8, A8B8G8R8
+                    20: 'RGB888',   22: 'RGB888',     # R8G8B8, X8R8G8B8
+                    23: 'RGB565',   25: 'ARGB1555',
+                    26: 'ARGB4444', 24: 'RGB555',
+                    50: 'LUM8',     51: 'A8L8',
+                    41: 'PAL8',
+                }
+                tex['format'] = d3d_fmt_map.get(d3d_format,
+                    raster_pixel_map.get(pixel_fmt,
+                    f'UNKNOWN_RF{raster_format_flags:08X}_D3D{d3d_format:08X}'))
+            else:
+                # GTA3/VC: use raster_format pixel bits only
+                tex['format'] = raster_pixel_map.get(pixel_fmt,
+                    f'UNKNOWN_RF{raster_format_flags:08X}_D3D{d3d_format:08X}')
 
-            # Check alpha flag in raster format
+            # Alpha flag
             if raster_format_flags & 0x10000:
                 tex['has_alpha'] = True
 
-            # Compression byte (1 byte) + Data size (4 bytes)
+            # Compression byte (1 byte)
+            # For D3D8 GTA3/VC: 0=raw, 1=DXT1, 3=DXT3, 5=DXT5
             compression = struct.unpack('<B', txd_data[pos:pos+1])[0]
             pos += 1
 
-            data_size = struct.unpack('<I', txd_data[pos:pos+4])[0]
-            pos += 4
+            # Data size field (4 bytes):
+            # SA (D3D9, RW >= 0x1803FFFF): present for ALL formats
+            # GTA3/VC (D3D8): present ONLY for DXT; raw/PAL data follows header directly
+            is_dxt = 'DXT' in tex['format']
+            is_sa_plus = (rw_version >= 0x1803FFFF)
+            has_data_size_field = is_dxt or is_sa_plus
+            if has_data_size_field:
+                data_size = struct.unpack('<I', txd_data[pos:pos+4])[0]
+                pos += 4
+            else:
+                # Calculate expected size for GTA3/VC raw formats
+                if tex['format'] == 'PAL8':
+                    data_size = 1024 + width * height
+                elif tex['format'] == 'PAL4':
+                    data_size = 64 + (width * height + 1) // 2
+                elif tex['format'] in ('ARGB8888', 'A8L8'):
+                    data_size = width * height * 4
+                elif tex['format'] == 'RGB888':
+                    data_size = width * height * (4 if tex.get('depth', 0) == 32 else 3)
+                elif tex['format'] == 'LUM8':
+                    data_size = width * height
+                else:  # 16-bit: RGB565, ARGB1555, ARGB4444, RGB555
+                    data_size = width * height * 2
 
             # === TEXTURE DATA ===
             data_offset = pos
@@ -436,6 +510,28 @@ class TXDSerializer: #vers 1
                     else:
                         # Decompression failed, create blank
                         tex['rgba_data'] = b'\x00' * (width * height * 4)
+
+                elif tex['format'] in ('PAL8', 'PAL4'):
+                    # Palettized: palette comes first, then pixel indices
+                    # RW always stores palette entries as 4-byte BGRA regardless of pixel_fmt
+                    # pixel_fmt (e.g. C888) describes the OUTPUT colour space, not palette entry size
+                    palette_size = 1024 if tex['format'] == 'PAL8' else 64  # 256*4 or 16*4 BGRA
+                    tex['original_bgra_data'] = original_data
+                    if len(original_data) >= palette_size:
+                        palette_data = original_data[:palette_size]
+                        pixel_data = original_data[palette_size:]
+                        tex['palette_data'] = palette_data
+                        # Pass palette_entry_format so decoder knows whether to output alpha
+                        pal_entry_fmt = tex.get('palette_entry_format', 'ARGB8888')
+                        converted = self._decompress_uncompressed(
+                            pixel_data, width, height, tex['format'],
+                            palette=palette_data,
+                            palette_entry_fmt=pal_entry_fmt
+                        )
+                        tex['rgba_data'] = converted if converted else b'\x00' * (width * height * 4)
+                    else:
+                        tex['rgba_data'] = b'\x00' * (width * height * 4)
+
                 else:
                     # Uncompressed texture (stored as BGRA in RenderWare)
                     tex['original_bgra_data'] = original_data  # Store original BGRA
@@ -553,31 +649,46 @@ class TXDSerializer: #vers 1
         """Write RenderWare section header"""
         return struct.pack('<III', section_type, size, version)
     
-    def _get_format_code(self, format_str: str, has_alpha: bool) -> int: #vers 1
-        """Get RenderWare format code"""
-        format_map = {
-            'DXT1': 0x31545844,
-            'DXT3': 0x33545844,
-            'DXT5': 0x35545844,
-            'ARGB8888': 0x15,
-            'RGB888': 0x14,
-            'ARGB1555': 0x02,
-            'RGB565': 0x01,
-            'PAL8': 0x05,
+    def _get_format_code(self, format_str: str, has_alpha: bool) -> int: #vers 2
+        """Get RenderWare raster_format flags for format string"""
+        # Returns the raster_format value (PAL flag | pixel format bits)
+        raster_map = {
+            'DXT1':     0x31545844,
+            'DXT2':     0x32545844,
+            'DXT3':     0x33545844,
+            'DXT4':     0x34545844,
+            'DXT5':     0x35545844,
+            'ARGB8888': 0x0500,
+            'RGB888':   0x0600,
+            'ARGB1555': 0x0100,
+            'ARGB4444': 0x0300,
+            'RGB565':   0x0200,
+            'RGB555':   0x0A00,
+            'LUM8':     0x0400,
+            'A8L8':     0x0400,  # closest RW type
+            'PAL8':     0x0500 | 0x2000,  # C8888 palette entries + FORMAT_EXT_PAL8
+            'PAL4':     0x0500 | 0x4000,  # C8888 palette entries + FORMAT_EXT_PAL4
         }
-        return format_map.get(format_str, 0x31545844)
-    
-    def _get_d3d_format(self, format_str: str) -> int: #vers 1
-        """Get D3D format code"""
+        return raster_map.get(format_str, 0x31545844)
+
+    def _get_d3d_format(self, format_str: str) -> int: #vers 2
+        """Get D3D format code for format string"""
         d3d_map = {
-            'DXT1': 0x31545844,
-            'DXT3': 0x33545844,
-            'DXT5': 0x35545844,
-            'ARGB8888': 21,
-            'RGB888': 20,
-            'ARGB1555': 25,
-            'RGB565': 23,
-            'PAL8': 0x14,
+            'DXT1':     0x31545844,
+            'DXT2':     0x32545844,
+            'DXT3':     0x33545844,
+            'DXT4':     0x34545844,
+            'DXT5':     0x35545844,
+            'ARGB8888': 21,   # D3DFMT_A8R8G8B8
+            'RGB888':   20,   # D3DFMT_R8G8B8
+            'ARGB1555': 25,   # D3DFMT_A1R5G5B5
+            'ARGB4444': 26,   # D3DFMT_A4R4G4B4
+            'RGB565':   23,   # D3DFMT_R5G6B5
+            'RGB555':   24,   # D3DFMT_X1R5G5B5
+            'LUM8':     50,   # D3DFMT_L8
+            'A8L8':     51,   # D3DFMT_A8L8
+            'PAL8':     41,   # D3DFMT_P8
+            'PAL4':     41,   # D3DFMT_P8 (closest)
         }
         return d3d_map.get(format_str, 0x31545844)
     
