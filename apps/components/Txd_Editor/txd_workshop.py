@@ -4023,14 +4023,42 @@ class TXDWorkshop(QWidget): #vers 3
         print("Upscale Native toggled")
 
 
-    def _show_shaders_dialog(self): #vers 1
-        """Show shaders configuration dialog"""
-        from PyQt6.QtWidgets import QMessageBox
-        QMessageBox.information(self, "Shaders",
-            "Shader configuration coming soon!\n\nThis will allow you to:\n"
-            "- Select shader presets\n"
-            "- Configure CRT effects\n"
-            "- Adjust visual filters")
+    def _show_shaders_dialog(self): #vers 2
+        """Show viewport shader presets — applies display-only visual effects."""
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
+            QLabel, QPushButton, QButtonGroup, QRadioButton)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Preview Shaders")
+        dlg.setFixedSize(300, 220)
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(QLabel("<b>Display shader (preview only, does not modify texture)</b>"))
+
+        presets = [
+            ("None",       "normal"),
+            ("Greyscale",  "greyscale"),
+            ("Sepia",      "sepia"),
+            ("Invert",     "invert"),
+            ("Sharpen",    "sharpen"),
+        ]
+        grp = QButtonGroup(dlg)
+        current = getattr(self, '_preview_shader', 'normal')
+        for label, key in presets:
+            rb = QRadioButton(label)
+            rb.setChecked(key == current)
+            rb.toggled.connect(lambda checked, k=key: (
+                setattr(self, '_preview_shader', k) or (
+                    self._update_texture_info(self.selected_texture)
+                    if checked and self.selected_texture else None
+                )
+            ))
+            grp.addButton(rb)
+            lay.addWidget(rb)
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dlg.accept)
+        lay.addWidget(close_btn)
+        dlg.exec()
 
 
     def _show_window_context_menu(self, pos): #vers 1
@@ -11122,28 +11150,106 @@ class TXDWorkshop(QWidget): #vers 3
 
         layout.addStretch()
         return self.transform_text_panel
-    def _edit_texture(self): #vers 1
-        """Edit texture in external editor"""
-        if not self.selected_texture:
+    def _edit_texture(self): #vers 2
+        """Edit texture in external editor — delegates to _edit_texture_external."""
+        self._edit_texture_external()
+
+
+    def _open_paint_editor(self): #vers 2
+        """Open simple paint editor — direct pixel drawing on the texture."""
+        if not self.selected_texture or not self.selected_texture.get('rgba_data'):
+            QMessageBox.warning(self, "No Texture", "Select a texture first.")
             return
 
-        QMessageBox.information(self, "Edit Texture",
-            "External texture editor coming soon!\n\n"
-            "This will allow editing textures in an external image editor.")
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
+            QPushButton, QLabel, QSlider, QColorDialog, QSizePolicy)
+        from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor, QCursor
+        from PyQt6.QtCore import Qt, QPoint
 
+        tex = self.selected_texture
+        width, height = tex['width'], tex['height']
+        rgba = bytearray(tex['rgba_data'])
 
-    def _open_paint_editor(self): #vers 1
-        """Open simple paint editor"""
-        if not self.selected_texture:
-            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Paint — {tex['name']}  ({width}x{height})")
+        dlg.setMinimumSize(max(width + 120, 400), max(height + 120, 400))
 
-        QMessageBox.information(self, "Paint Editor",
-            "Simple pixel paint editor coming soon!\n\n"
-            "Features:\n"
-            "- Draw pixels\n"
-            "- Color picker\n"
-            "- Brush sizes\n"
-            "- Undo/Redo")
+        # State
+        state = {'color': QColor(255, 0, 0, 255), 'size': 1, 'rgba': rgba}
+
+        # Canvas label
+        canvas = QLabel()
+        canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        canvas.setCursor(QCursor(Qt.CursorShape.CrossCursor))
+        canvas.setMinimumSize(width, height)
+
+        def _refresh():
+            img = QImage(bytes(state['rgba']), width, height,
+                         width * 4, QImage.Format.Format_RGBA8888)
+            canvas.setPixmap(QPixmap.fromImage(img).scaled(
+                width, height, Qt.AspectRatioMode.KeepAspectRatio))
+
+        def _paint_at(pos):
+            pw = canvas.pixmap()
+            if not pw: return
+            # Map widget pos to texture pixel
+            sx = pw.width(); sy = pw.height()
+            px = int(pos.x() * width  / sx)
+            py = int(pos.y() * height / sy)
+            s  = state['size']
+            r, g, b, a = (state['color'].red(), state['color'].green(),
+                          state['color'].blue(), state['color'].alpha())
+            for dy in range(-s, s+1):
+                for dx in range(-s, s+1):
+                    nx, ny = px+dx, py+dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        i = (ny * width + nx) * 4
+                        state['rgba'][i:i+4] = [r, g, b, a]
+            _refresh()
+
+        canvas.mousePressEvent   = lambda e: _paint_at(e.position().toPoint())
+        canvas.mouseMoveEvent    = lambda e: (_paint_at(e.position().toPoint())
+                                              if e.buttons() & Qt.MouseButton.LeftButton else None)
+        _refresh()
+
+        # Controls
+        ctrl = QHBoxLayout()
+        color_btn = QPushButton("🎨 Colour")
+        def _pick():
+            c = QColorDialog.getColor(state['color'], dlg, "Pick colour",
+                                       QColorDialog.ColorDialogOption.ShowAlphaChannel)
+            if c.isValid():
+                state['color'] = c
+                color_btn.setStyleSheet(f"background:{c.name()}")
+        color_btn.clicked.connect(_pick)
+        ctrl.addWidget(color_btn)
+
+        ctrl.addWidget(QLabel("Brush:"))
+        size_sl = QSlider(Qt.Orientation.Horizontal)
+        size_sl.setRange(0, 10); size_sl.setValue(1); size_sl.setMaximumWidth(100)
+        size_sl.valueChanged.connect(lambda v: state.update({'size': v}))
+        ctrl.addWidget(size_sl)
+        ctrl.addStretch()
+
+        ok_btn  = QPushButton("✓ Apply")
+        cxl_btn = QPushButton("✗ Cancel")
+
+        def _apply():
+            self._save_undo_state("Paint edit")
+            tex['rgba_data'] = bytes(state['rgba'])
+            self._update_texture_info(tex)
+            self._update_table_display()
+            self._mark_as_modified()
+            dlg.accept()
+
+        ok_btn.clicked.connect(_apply)
+        cxl_btn.clicked.connect(dlg.reject)
+        ctrl.addWidget(ok_btn); ctrl.addWidget(cxl_btn)
+
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(canvas)
+        lay.addLayout(ctrl)
+        dlg.exec()
 
 
     def _open_filters_dialog(self): #vers 1
@@ -11199,8 +11305,57 @@ class TXDWorkshop(QWidget): #vers 3
         button_layout.addStretch()
 
         apply_btn = QPushButton("Apply")
-        apply_btn.clicked.connect(lambda: QMessageBox.information(
-            dialog, "Apply Filters", "Filter application coming soon!"))
+        def _apply_filters():
+            if not self.selected_texture or not self.selected_texture.get('rgba_data'):
+                return
+            try:
+                from PIL import Image, ImageEnhance, ImageFilter
+                import io
+                tex = self.selected_texture
+                img = Image.frombytes('RGBA', (tex['width'], tex['height']), tex['rgba_data'])
+
+                b_val = brightness_slider.value() / 100.0
+                c_val = contrast_slider.value()    / 100.0
+                s_val = saturation_slider.value()  / 100.0
+                h_val = hue_slider.value()
+
+                # Brightness: +100 = double, -100 = black
+                if b_val != 0:
+                    factor = 1.0 + b_val
+                    img = ImageEnhance.Brightness(img).enhance(max(0.0, factor))
+
+                # Contrast: +100 = double, -100 = grey
+                if c_val != 0:
+                    factor = 1.0 + c_val
+                    img = ImageEnhance.Contrast(img).enhance(max(0.0, factor))
+
+                # Saturation
+                if s_val != 0:
+                    factor = 1.0 + s_val
+                    img = ImageEnhance.Color(img).enhance(max(0.0, factor))
+
+                # Hue shift via HSV
+                if h_val != 0:
+                    import colorsys
+                    pixels = list(img.getdata())
+                    new_pixels = []
+                    for r, g, b, a in pixels:
+                        h, s, v = colorsys.rgb_to_hsv(r/255, g/255, b/255)
+                        h = (h + h_val / 360.0) % 1.0
+                        r2, g2, b2 = colorsys.hsv_to_rgb(h, s, v)
+                        new_pixels.append((int(r2*255), int(g2*255), int(b2*255), a))
+                    img.putdata(new_pixels)
+
+                self._save_undo_state("Apply filters")
+                tex['rgba_data'] = img.tobytes()
+                self._update_texture_info(tex)
+                self._update_table_display()
+                self._mark_as_modified()
+                dialog.accept()
+            except Exception as e:
+                QMessageBox.critical(dialog, "Filter Error", str(e))
+
+        apply_btn.clicked.connect(_apply_filters)
         button_layout.addWidget(apply_btn)
 
         reset_btn = QPushButton("Reset")
@@ -11770,24 +11925,101 @@ class TXDWorkshop(QWidget): #vers 3
             QMessageBox.critical(self, "Error", f"Failed to rotate: {str(e)}")
 
 
-    def _edit_texture_external(self): #vers 1
-        """Edit texture in external editor (placeholder)"""
-        QMessageBox.information(self, "Coming Soon",
-            "External editor integration will be added soon!\n\n"
-            "Will support:\n"
-            "• Open in GIMP/Photoshop\n"
-            "• Auto-reload on save\n"
-            "• Custom editor paths")
+    def _edit_texture_external(self): #vers 2
+        """Export texture as PNG to temp file and open in system default image editor."""
+        import os, tempfile, subprocess, sys
+        from PyQt6.QtWidgets import QMessageBox
+
+        if not self.selected_texture or not self.selected_texture.get('rgba_data'):
+            QMessageBox.warning(self, "No Texture", "Select a texture first.")
+            return
+
+        try:
+            from PIL import Image
+            tex = self.selected_texture
+            img = Image.frombytes('RGBA', (tex['width'], tex['height']), tex['rgba_data'])
+            tmp = tempfile.NamedTemporaryFile(
+                suffix=f"_{tex['name']}.png", delete=False, prefix="txdws_")
+            tmp_path = tmp.name
+            tmp.close()
+            img.save(tmp_path)
+
+            # Open with system default
+            if sys.platform.startswith('linux'):
+                subprocess.Popen(['xdg-open', tmp_path])
+            elif sys.platform == 'darwin':
+                subprocess.Popen(['open', tmp_path])
+            else:
+                os.startfile(tmp_path)
+
+            if self.main_window and hasattr(self.main_window, 'log_message'):
+                self.main_window.log_message(f"Opened {tex['name']} in external editor: {tmp_path}")
+            QMessageBox.information(self, "External Editor",
+                f"Opened in system image editor:\n{tmp_path}\n\n"
+                "Re-import the file with Import → Replace texture when done.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not open external editor:\n{e}")
 
 
-    def _convert_texture_format(self): #vers 1
-        """Convert texture format (placeholder)"""
-        QMessageBox.information(self, "Coming Soon",
-            "Format conversion tools will be added soon!\n\n"
-            "Will support:\n"
-            "• Batch DXT compression\n"
-            "• Color depth conversion\n"
-            "• Palette generation")
+    def _convert_texture_format(self): #vers 2
+        """Convert the selected texture to a different format."""
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
+            QLabel, QComboBox, QPushButton, QMessageBox)
+
+        if not self.selected_texture or not self.selected_texture.get('rgba_data'):
+            QMessageBox.warning(self, "No Texture", "Select a texture first.")
+            return
+
+        tex = self.selected_texture
+        current_fmt = tex.get('format', 'ARGB8888')
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Convert Format — {tex['name']}")
+        dlg.setFixedSize(320, 160)
+        lay = QVBoxLayout(dlg)
+
+        lay.addWidget(QLabel(f"Current format: <b>{current_fmt}</b>"))
+        lay.addWidget(QLabel("Convert to:"))
+
+        fmt_combo = QComboBox()
+        formats = ['ARGB8888', 'RGB888', 'DXT1', 'DXT3', 'DXT5',
+                   'RGB565', 'ARGB1555', 'ARGB4444']
+        fmt_combo.addItems([f for f in formats if f != current_fmt])
+        lay.addWidget(fmt_combo)
+
+        btns = QHBoxLayout()
+        ok = QPushButton("Convert"); cancel = QPushButton("Cancel")
+        btns.addStretch(); btns.addWidget(ok); btns.addWidget(cancel)
+        lay.addLayout(btns)
+        cancel.clicked.connect(dlg.reject)
+
+        def _do_convert():
+            target = fmt_combo.currentText()
+            try:
+                from PIL import Image
+                img = Image.frombytes('RGBA', (tex['width'], tex['height']), tex['rgba_data'])
+                if target == 'RGB888':
+                    img = img.convert('RGB').convert('RGBA')
+                elif target in ('RGB565', 'ARGB1555', 'ARGB4444'):
+                    img = img.convert('RGBA')
+                elif target == 'ARGB8888':
+                    img = img.convert('RGBA')
+                # DXT: just set format flag — compression happens on save
+                self._save_undo_state(f"Convert to {target}")
+                tex['rgba_data'] = img.tobytes()
+                tex['format'] = target
+                tex['has_alpha'] = target not in ('DXT1', 'RGB888', 'RGB565')
+                self._update_texture_info(tex)
+                self._update_table_display()
+                self._mark_as_modified()
+                if self.main_window and hasattr(self.main_window, 'log_message'):
+                    self.main_window.log_message(f"Converted {tex['name']}: {current_fmt} → {target}")
+                dlg.accept()
+            except Exception as e:
+                QMessageBox.critical(dlg, "Convert Error", str(e))
+
+        ok.clicked.connect(_do_convert)
+        dlg.exec()
 
 
     def flip_texture(self): #vers 2 - TODO - to be rmeoved.
@@ -16054,25 +16286,88 @@ class MipmapManagerWindow(QWidget): #vers 2
             new_window.show()
 
 
-    def _export_all_levels(self): #vers 1
-        """Export all mipmap levels"""
-        if self.main_window and hasattr(self.main_window, 'log_message'):
-            self.main_window.log_message("📤 Exporting all mipmap levels...")
+    def _export_all_levels(self): #vers 2
+        """Export all mipmap levels as PNG files to a chosen folder."""
+        import os
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from PIL import Image
 
-        from PyQt6.QtWidgets import QFileDialog
+        levels = self.texture_data.get('mipmap_levels', [])
+        if not levels:
+            QMessageBox.warning(self, "No Mipmaps", "No mipmap levels found.")
+            return
+
         output_dir = QFileDialog.getExistingDirectory(self, "Select Export Directory")
         if not output_dir:
             return
 
-        # Export logic here
-        QMessageBox.information(self, "Export", "Mipmap export functionality coming soon!")
+        tex_name = self.texture_data.get('name', 'texture')
+        exported = 0
+        for level_data in levels:
+            lvl   = level_data.get('level', 0)
+            w, h  = level_data.get('width', 1), level_data.get('height', 1)
+            rgba  = level_data.get('rgba_data')
+            if not rgba:
+                continue
+            try:
+                img  = Image.frombytes('RGBA', (w, h), rgba)
+                path_out = os.path.join(output_dir, f"{tex_name}_mip{lvl}_{w}x{h}.png")
+                img.save(path_out)
+                exported += 1
+            except Exception as e:
+                print(f"Mipmap {lvl} export error: {e}")
 
-
-    def _import_all_levels(self): #vers 1
-        """Import mipmap levels from files"""
+        msg = f"Exported {exported} mipmap level(s) to:\n{output_dir}"
         if self.main_window and hasattr(self.main_window, 'log_message'):
-            self.main_window.log_message("📥 Importing mipmap levels...")
-        QMessageBox.information(self, "Import", "Mipmap import functionality coming soon!")
+            self.main_window.log_message(msg)
+        QMessageBox.information(self, "Export Complete", msg)
+
+
+    def _import_all_levels(self): #vers 2
+        """Import mipmap levels from PNG files — filename must contain _mipN_."""
+        import os, re
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from PIL import Image
+
+        paths, _ = QFileDialog.getOpenFileNames(
+            self, "Select Mipmap PNG files", "",
+            "PNG Images (*.png);;All Files (*)")
+        if not paths:
+            return
+
+        imported = 0
+        for file_path in sorted(paths):
+            fname = os.path.basename(file_path)
+            m = re.search(r'_mip(\d+)_', fname)
+            level_num = int(m.group(1)) if m else imported
+
+            try:
+                img  = Image.open(file_path).convert('RGBA')
+                rgba = img.tobytes()
+                levels = self.texture_data.setdefault('mipmap_levels', [])
+                # Replace or append
+                existing = next((l for l in levels if l.get('level') == level_num), None)
+                if existing:
+                    existing['rgba_data'] = rgba
+                    existing['width']     = img.width
+                    existing['height']    = img.height
+                else:
+                    levels.append({'level': level_num, 'width': img.width,
+                                   'height': img.height, 'rgba_data': rgba})
+                self.modified_levels[level_num] = True
+                imported += 1
+            except Exception as e:
+                print(f"Mipmap import {file_path}: {e}")
+
+        self.texture_data['mipmaps'] = len(self.texture_data.get('mipmap_levels', []))
+        msg = f"Imported {imported} mipmap level(s)."
+        if self.main_window and hasattr(self.main_window, 'log_message'):
+            self.main_window.log_message(msg)
+        QMessageBox.information(self, "Import Complete", msg)
+        # Reopen to refresh
+        self.close()
+        from apps.components.Txd_Editor.txd_workshop import MipmapManagerWindow
+        MipmapManagerWindow(self.parent_workshop, self.texture_data, self.main_window).show()
 
 
     def _clear_all_levels(self): #vers 1
@@ -16694,25 +16989,88 @@ class MipmapManagerWindow(QWidget): #vers 2
             new_window.show()
 
 
-    def _export_all_levels(self): #vers 1
-        """Export all mipmap levels"""
-        if self.main_window and hasattr(self.main_window, 'log_message'):
-            self.main_window.log_message("📤 Exporting all mipmap levels...")
+    def _export_all_levels(self): #vers 2
+        """Export all mipmap levels as PNG files to a chosen folder."""
+        import os
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from PIL import Image
 
-        from PyQt6.QtWidgets import QFileDialog
+        levels = self.texture_data.get('mipmap_levels', [])
+        if not levels:
+            QMessageBox.warning(self, "No Mipmaps", "No mipmap levels found.")
+            return
+
         output_dir = QFileDialog.getExistingDirectory(self, "Select Export Directory")
         if not output_dir:
             return
 
-        # Export logic here
-        QMessageBox.information(self, "Export", "Mipmap export functionality coming soon!")
+        tex_name = self.texture_data.get('name', 'texture')
+        exported = 0
+        for level_data in levels:
+            lvl   = level_data.get('level', 0)
+            w, h  = level_data.get('width', 1), level_data.get('height', 1)
+            rgba  = level_data.get('rgba_data')
+            if not rgba:
+                continue
+            try:
+                img  = Image.frombytes('RGBA', (w, h), rgba)
+                path_out = os.path.join(output_dir, f"{tex_name}_mip{lvl}_{w}x{h}.png")
+                img.save(path_out)
+                exported += 1
+            except Exception as e:
+                print(f"Mipmap {lvl} export error: {e}")
 
-
-    def _import_all_levels(self): #vers 1
-        """Import mipmap levels from files"""
+        msg = f"Exported {exported} mipmap level(s) to:\n{output_dir}"
         if self.main_window and hasattr(self.main_window, 'log_message'):
-            self.main_window.log_message("📥 Importing mipmap levels...")
-        QMessageBox.information(self, "Import", "Mipmap import functionality coming soon!")
+            self.main_window.log_message(msg)
+        QMessageBox.information(self, "Export Complete", msg)
+
+
+    def _import_all_levels(self): #vers 2
+        """Import mipmap levels from PNG files — filename must contain _mipN_."""
+        import os, re
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from PIL import Image
+
+        paths, _ = QFileDialog.getOpenFileNames(
+            self, "Select Mipmap PNG files", "",
+            "PNG Images (*.png);;All Files (*)")
+        if not paths:
+            return
+
+        imported = 0
+        for file_path in sorted(paths):
+            fname = os.path.basename(file_path)
+            m = re.search(r'_mip(\d+)_', fname)
+            level_num = int(m.group(1)) if m else imported
+
+            try:
+                img  = Image.open(file_path).convert('RGBA')
+                rgba = img.tobytes()
+                levels = self.texture_data.setdefault('mipmap_levels', [])
+                # Replace or append
+                existing = next((l for l in levels if l.get('level') == level_num), None)
+                if existing:
+                    existing['rgba_data'] = rgba
+                    existing['width']     = img.width
+                    existing['height']    = img.height
+                else:
+                    levels.append({'level': level_num, 'width': img.width,
+                                   'height': img.height, 'rgba_data': rgba})
+                self.modified_levels[level_num] = True
+                imported += 1
+            except Exception as e:
+                print(f"Mipmap import {file_path}: {e}")
+
+        self.texture_data['mipmaps'] = len(self.texture_data.get('mipmap_levels', []))
+        msg = f"Imported {imported} mipmap level(s)."
+        if self.main_window and hasattr(self.main_window, 'log_message'):
+            self.main_window.log_message(msg)
+        QMessageBox.information(self, "Import Complete", msg)
+        # Reopen to refresh
+        self.close()
+        from apps.components.Txd_Editor.txd_workshop import MipmapManagerWindow
+        MipmapManagerWindow(self.parent_workshop, self.texture_data, self.main_window).show()
 
 
     def _clear_all_levels(self): #vers 1
