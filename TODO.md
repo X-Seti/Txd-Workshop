@@ -412,3 +412,78 @@ When working on tasks:
 **Active Tasks**: 15 high/medium priority items
 **Future Features**: 3 documented ideas
 **Completed Today**: 2 major tasks (Custom File Browser + Theme System Expansion)
+
+---
+
+### 16. DFF Texture List — right-click on DFF entry
+**Priority**: High
+**Status**: In Progress
+
+- [ ] apps/core/dff_texlist.py — RW chunk walker (Texture 0x0006 > String 0x0002)
+- [ ] apps/gui/dff_texlist_dialog.py — table: name | in IMG | TXD on disk
+- [ ] Wire into apps/core/right_click_actions.py — "Show Texture List" for .dff
+- [ ] Delete apps/components/Img_Factory/depends/comprehensive.py after migration
+
+---
+
+### 17. TXD Workshop — Build TXD from DFF scan
+**Priority**: Medium-High
+**Status**: Planned
+
+- [ ] Scan DFF for texture names via RW chunk walk
+- [ ] User picks folder of PNG/BMP/TGA files matched by name
+- [ ] Build new TXD from found images
+- [ ] Add to TXD Workshop as "Build TXD from DFF..."
+
+---
+
+### 18. Model Workshop — new component
+**Priority**: Medium
+**Status**: Planned — base on Col_Workshop UI framework
+**Location**: apps/components/Model_Editor/model_workshop.py
+
+- [ ] Load/view/edit DFF, MDL, NIF
+- [ ] Texture mapping (links to TXD Workshop)
+- [ ] Prelighting — vertex colour editing
+- [ ] LOD generation: Largebuilding.dff → LODgebuilding.dff
+- [ ] Export DFF and other formats
+
+---
+
+### 19. COL Workshop — Generate COL from DFF
+**Priority**: Medium
+**Status**: Planned — depends on Model Workshop DFF parser
+
+- [ ] Read material/surface flags from DFF faces
+- [ ] Map texture names to GTA surface types (GTA3/VC ~16, SA 180+)
+- [ ] Grass texture on model → grass surface in COL
+- [ ] Concrete, mud, stone, pavement etc.
+- [ ] Generate COL mesh from DFF geometry
+- [ ] Create LOD COL alongside LOD model
+
+---
+
+**Last Updated**: March 2026
+
+---
+
+## Post-session TODO (after Builds 162–196)
+
+### COL Workshop
+- [ ] Paint toolbar: verify overlay positioning on all screen sizes / dock states
+- [ ] Paint toolbar: keyboard shortcut to switch tools (P=paint, D=dropper, F=fill)
+- [ ] Material editor: show material colour in the "Apply to Selection" confirmation
+- [ ] `export_model` / `import_elements` module-level helpers (currently print stubs)
+- [ ] COL3DViewport: vertex selection mode (currently only face selection)
+
+### TXD Workshop  
+- [ ] Bumpmap preview ("Preview coming soon" label still present)
+- [ ] DXT re-compression on save (currently stores RGBA, notes "compression applied on save")
+
+### IMG Factory
+- [ ] Future editors still stubbed: DFF, IPF, IPL, DAT, zones, weapons, vehicles, radar, paths, water
+
+### PyInstaller
+- [ ] Test `imgfactory.spec` on Windows — may need platform-specific binary paths
+- [ ] Icon file: ensure `assets/icon.ico` exists for Windows build
+
