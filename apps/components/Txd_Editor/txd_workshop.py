@@ -25,6 +25,7 @@ from PyQt6.QtGui import QFont, QIcon, QPixmap, QImage, QPainter, QPen, QBrush, Q
 from PyQt6.QtSvg import QSvgRenderer
 
 # Fallback to standalone depends folder
+from apps.gui.tool_menu_mixin import ToolMenuMixin
 from apps.methods.txd_versions import ( detect_txd_version, get_platform_name, get_game_from_version, get_version_capabilities, get_platform_capabilities, is_mipmap_supported, is_bumpmap_supported, validate_txd_format, TXDPlatform, detect_platform_from_data)
 
 from apps.methods.txd_versions import (detect_txd_version, get_version_string, get_platform_name, get_platform_capabilities, TXDPlatform, TXDVersion)
@@ -427,7 +428,7 @@ class PlatformConversionDialog(QDialog): #vers 1
         return self.config
 
 
-class TXDWorkshop(QWidget): #vers 3
+class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
     """TXD Workshop - Main texture editing window"""
 
     workshop_closed = pyqtSignal()
@@ -582,6 +583,50 @@ class TXDWorkshop(QWidget): #vers 3
         if DEBUG_STANDALONE and self.standalone_mode:
             print(App_name + " initialized")
 
+
+    # ── ToolMenuMixin implementation ─────────────────────────────────────
+
+    def get_menu_title(self) -> str: #vers 1
+        """Return menu label for imgfactory menu bar."""
+        return "TXD Workshop"
+
+    def _build_menus_into_qmenu(self, parent_menu): #vers 1
+        """Populate parent_menu with TXD Workshop actions for imgfactory injection."""
+        from PyQt6.QtGui import QAction
+
+        # File
+        fm = parent_menu.addMenu("File")
+        fm.addAction("Open TXD…",           self._open_txd_file if hasattr(self, '_open_txd_file') else lambda: None)
+        fm.addAction("Save TXD",             self._save_txd_file)
+        fm.addAction("Save TXD As…",         self._save_as_txd_file)
+        fm.addSeparator()
+        fm.addAction("New TXD",              self._create_new_txd)
+        fm.addSeparator()
+        fm.addAction("Close TXD",            lambda: None)
+
+        # Texture
+        tm = parent_menu.addMenu("Texture")
+        tm.addAction("Import Texture…",      self._import_textures)
+        tm.addAction("Export Selected…",     self.export_selected_texture)
+        tm.addAction("Export All…",          self.export_all_textures)
+        tm.addSeparator()
+        tm.addAction("Convert Format…",      self._show_convert_dialog if hasattr(self, '_show_convert_dialog') else lambda: None)
+
+        # Tools
+        tools = parent_menu.addMenu("Tools")
+        tools.addAction("Colour Adjustments…", self._open_colour_adjust)
+        tools.addAction("Seamless Tool…",       self._open_seamless_tool)
+        tools.addAction("Snow Effect…",         self._open_snow_tool)
+        tools.addSeparator()
+        tools.addAction("Tiled Preview 1×1",    lambda: self._set_tiled_preview(1))
+        tools.addAction("Tiled Preview 2×2",    lambda: self._set_tiled_preview(2))
+        tools.addAction("Tiled Preview 3×3",    lambda: self._set_tiled_preview(3))
+        tools.addSeparator()
+        tools.addAction("Alpha Coverage…",      self._open_alpha_coverage)
+
+        # View
+        vm = parent_menu.addMenu("View")
+        vm.addAction("TXD Info",             self._show_txd_info)
 
     def setup_ui(self): #vers 8
         """Setup the main UI layout"""
@@ -2462,9 +2507,27 @@ class TXDWorkshop(QWidget): #vers 3
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(5, 5, 5, 5)
 
+        # Header row with search button
+        hdr_row = QHBoxLayout()
         header = QLabel("TXD Files")
         header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        layout.addWidget(header)
+        hdr_row.addWidget(header)
+        hdr_row.addStretch()
+        self.txd_search_btn = QPushButton()
+        self.txd_search_btn.setFixedSize(24, 24)
+        self.txd_search_btn.setIcon(SVGIconFactory.search_icon(16, self._get_icon_color()))
+        self.txd_search_btn.setIconSize(QSize(16, 16))
+        self.txd_search_btn.setToolTip("Search TXD files")
+        self.txd_search_btn.clicked.connect(self._show_txd_search)
+        hdr_row.addWidget(self.txd_search_btn)
+        layout.addLayout(hdr_row)
+
+        # Search box (hidden by default)
+        self.txd_search_box = QLineEdit()
+        self.txd_search_box.setPlaceholderText("Search TXD files...")
+        self.txd_search_box.setVisible(False)
+        self.txd_search_box.textChanged.connect(self._filter_txd_list)
+        layout.addWidget(self.txd_search_box)
 
         self.txd_list_widget = QListWidget()
         self.txd_list_widget.setAlternatingRowColors(True)
@@ -2836,142 +2899,117 @@ class TXDWorkshop(QWidget): #vers 3
 
     def _create_preview_controls(self): #vers 2
         """Create preview control buttons - vertical layout on right"""
+        from PyQt6.QtCore import QSize, QByteArray
+        from PyQt6.QtGui import QIcon, QPixmap, QPainter
+        try:
+            from PyQt6.QtSvg import QSvgRenderer as _QSvgRenderer
+        except ImportError:
+            _QSvgRenderer = None
+        try:
+            from apps.methods.imgfactory_svg_icons import SVGIconFactory as _SVGIconFactory
+        except ImportError:
+            _SVGIconFactory = None
+
+        # 2-column grid — all buttons at 28px so 14 buttons = 7 rows × ~30px = ~210px
+        B  = 28   # button size
+        IC = 16   # icon size
+
         controls_frame = QFrame()
         controls_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        controls_frame.setMaximumWidth(50)
-        controls_layout = QVBoxLayout(controls_frame)
-        controls_layout.setContentsMargins(5, 5, 5, 5)
-        controls_layout.setSpacing(5)
+        controls_frame.setMaximumWidth(B * 2 + 10)  # exactly 2 cols wide
 
-        # Zoom In
-        zoom_in_btn = QPushButton()
-        zoom_in_btn.setIcon(self._create_zoom_in_icon())
-        zoom_in_btn.setIconSize(QSize(20, 20))
-        zoom_in_btn.setFixedSize(40, 40)
-        zoom_in_btn.setToolTip("Zoom In")
-        zoom_in_btn.clicked.connect(self.preview_widget.zoom_in)
-        controls_layout.addWidget(zoom_in_btn)
+        from PyQt6.QtWidgets import QGridLayout
+        grid = QGridLayout(controls_frame)
+        grid.setContentsMargins(2, 4, 2, 4)
+        grid.setSpacing(2)
 
-        # Zoom Out
-        zoom_out_btn = QPushButton()
-        zoom_out_btn.setIcon(self._create_zoom_out_icon())
-        zoom_out_btn.setIconSize(QSize(20, 20))
-        zoom_out_btn.setFixedSize(40, 40)
-        zoom_out_btn.setToolTip("Zoom Out")
-        zoom_out_btn.clicked.connect(self.preview_widget.zoom_out)
-        controls_layout.addWidget(zoom_out_btn)
+        _all_btns = []   # (btn, row, col) — filled below
 
-        # Reset
-        reset_btn = QPushButton()
-        reset_btn.setIcon(self._create_reset_icon())
-        reset_btn.setIconSize(QSize(20, 20))
-        reset_btn.setFixedSize(40, 40)
-        reset_btn.setToolTip("Reset View")
-        reset_btn.clicked.connect(self.preview_widget.reset_view)
-        controls_layout.addWidget(reset_btn)
+        def _btn(icon_fn, tip, slot, style=None, attr=None):
+            b = QPushButton()
+            b.setFixedSize(B, B)
+            b.setToolTip(tip)
+            try:
+                b.setIcon(getattr(self, icon_fn)())
+                b.setIconSize(QSize(IC, IC))
+            except Exception:
+                b.setText(tip[:2])
+            if style:
+                b.setStyleSheet(style)
+            b.clicked.connect(slot)
+            if attr:
+                setattr(self, attr, b)
+            _all_btns.append(b)
+            return b
 
-        # Fit
-        fit_btn = QPushButton()
-        fit_btn.setIcon(self._create_fit_icon())
-        fit_btn.setIconSize(QSize(20, 20))
-        fit_btn.setFixedSize(40, 40)
-        fit_btn.setToolTip("Fit to Window")
-        fit_btn.clicked.connect(self.preview_widget.fit_to_window)
-        controls_layout.addWidget(fit_btn)
+        def _tool_btn(icon_fn, tip, slot):
+            b = QPushButton()
+            b.setFixedSize(B, B)
+            b.setToolTip(tip)
+            try:
+                if _SVGIconFactory:
+                    b.setIcon(getattr(_SVGIconFactory, icon_fn)(IC))
+                    b.setIconSize(QSize(IC, IC))
+            except Exception:
+                b.setText(tip[:2])
+            b.clicked.connect(slot)
+            _all_btns.append(b)
+            return b
 
-        controls_layout.addSpacing(10)
+        # ── View controls ─────────────────────────────────────────────────
+        _btn('_create_zoom_in_icon',        'Zoom In',            self.preview_widget.zoom_in)
+        _btn('_create_zoom_out_icon',       'Zoom Out',           self.preview_widget.zoom_out)
+        _btn('_create_reset_icon',          'Reset View',         self.preview_widget.reset_view)
+        _btn('_create_fit_icon',            'Fit to Window',      self.preview_widget.fit_to_window)
+        _btn('_create_arrow_up_icon',       'Pan Up',             lambda: self._pan_preview(0, -20))
+        _btn('_create_arrow_down_icon',     'Pan Down',           lambda: self._pan_preview(0, 20))
+        _btn('_create_arrow_left_icon',     'Pan Left',           lambda: self._pan_preview(-20, 0))
+        _btn('_create_arrow_right_icon',    'Pan Right',          lambda: self._pan_preview(20, 0))
+        _btn('_create_color_picker_icon',   'Pick Background',    self._pick_background_color)
+        _btn('_create_resize_icon',         'Resize Texture',     self._resize_texture, attr='resize_texture_btn')
+        _btn('_create_checkerboard_icon',   'Checkerboard',       lambda: self.preview_widget.set_checkerboard_background())
 
-        # Pan Up
-        pan_up_btn = QPushButton()
-        pan_up_btn.setIcon(self._create_arrow_up_icon())
-        pan_up_btn.setIconSize(QSize(20, 20))
-        pan_up_btn.setFixedSize(40, 40)
-        pan_up_btn.setToolTip("Pan Up")
-        pan_up_btn.clicked.connect(lambda: self._pan_preview(0, -20))
-        controls_layout.addWidget(pan_up_btn)
+        # Background colour swatches — colour-coded, no icon needed
+        for color, tip, qcol in [
+            ('black',   'Black Background',  QColor(0,   0,   0  )),
+            ('#2a2a2a', 'Gray Background',   QColor(42,  42,  42 )),
+            ('white',   'White Background',  QColor(255, 255, 255)),
+        ]:
+            b = QPushButton()
+            b.setFixedSize(B, B)
+            b.setToolTip(tip)
+            b.setStyleSheet(f"background-color:{color}; border:1px solid #555;")
+            b.clicked.connect(lambda c=False, q=qcol: self.preview_widget.set_background_color(q))
+            _all_btns.append(b)
 
-        # Pan Down
-        pan_down_btn = QPushButton()
-        pan_down_btn.setIcon(self._create_arrow_down_icon())
-        pan_down_btn.setIconSize(QSize(20, 20))
-        pan_down_btn.setFixedSize(40, 40)
-        pan_down_btn.setToolTip("Pan Down")
-        pan_down_btn.clicked.connect(lambda: self._pan_preview(0, 20))
-        controls_layout.addWidget(pan_down_btn)
+        # ── Tool buttons (separator row then 2×2) ─────────────────────────
+        sep_btn = QFrame()
+        sep_btn.setFrameShape(QFrame.Shape.HLine)
+        sep_btn.setMaximumHeight(2)
 
-        # Pan Left
-        pan_left_btn = QPushButton()
-        pan_left_btn.setIcon(self._create_arrow_left_icon())
-        pan_left_btn.setIconSize(QSize(20, 20))
-        pan_left_btn.setFixedSize(40, 40)
-        pan_left_btn.setToolTip("Pan Left")
-        pan_left_btn.clicked.connect(lambda: self._pan_preview(-20, 0))
-        controls_layout.addWidget(pan_left_btn)
+        _tool_btn('knob_icon',           'Colour Adjustments…', self._open_colour_adjust)
+        _tool_btn('seamless_icon',       'Seamless Tool…',      self._open_seamless_tool)
+        _tool_btn('snow_icon',           'Snow Effect…',        self._open_snow_tool)
+        _tool_btn('alpha_coverage_icon', 'Alpha Coverage…',     self._open_alpha_coverage)
 
-        # Pan Right
-        pan_right_btn = QPushButton()
-        pan_right_btn.setIcon(self._create_arrow_right_icon())
-        pan_right_btn.setIconSize(QSize(20, 20))
-        pan_right_btn.setFixedSize(40, 40)
-        pan_right_btn.setToolTip("Pan Right")
-        pan_right_btn.clicked.connect(lambda: self._pan_preview(20, 0))
-        controls_layout.addWidget(pan_right_btn)
+        # Place all buttons into 2-column grid
+        n_cols = 2
+        # First 14 view/BG buttons, then separator spanning 2 cols, then 4 tool buttons
+        view_btns  = _all_btns[:14]
+        tool_btns  = _all_btns[14:]
+        row = 0
+        for idx, b in enumerate(view_btns):
+            grid.addWidget(b, idx // n_cols, idx % n_cols)
+            row = idx // n_cols
+        row += 1
+        grid.addWidget(sep_btn, row, 0, 1, 2)
+        row += 1
+        for idx, b in enumerate(tool_btns):
+            grid.addWidget(b, row + idx // n_cols, idx % n_cols)
 
-        bg_custom_btn = QPushButton()
-        bg_custom_btn.setIcon(self._create_color_picker_icon())
-        bg_custom_btn.setIconSize(QSize(20, 20))
-        bg_custom_btn.setFixedSize(40, 40)
-        bg_custom_btn.setToolTip("Pick Color")
-        bg_custom_btn.clicked.connect(self._pick_background_color)
-        controls_layout.addWidget(bg_custom_btn)
-
-        # Add resize button here
-        self.resize_texture_btn = QPushButton()
-        self.resize_texture_btn.setIcon(self._create_resize_icon())
-        self.resize_texture_btn.setIconSize(QSize(20, 20))
-        self.resize_texture_btn.setFixedSize(40, 40)
-        self.resize_texture_btn.setToolTip("Resize Texture")
-        self.resize_texture_btn.clicked.connect(self._resize_texture)
-        #self.resize_texture_btn.setEnabled(False)
-        controls_layout.addWidget(self.resize_texture_btn)
-
-        # Checkerboard pattern button
-        bg_checker_btn = QPushButton()
-        bg_checker_btn.setIcon(self._create_checkerboard_icon())
-        bg_checker_btn.setIconSize(QSize(20, 20))
-        bg_checker_btn.setFixedSize(40, 40)
-        bg_checker_btn.setToolTip("Checkerboard Pattern")
-        bg_checker_btn.clicked.connect(lambda: self.preview_widget.set_checkerboard_background())
-        controls_layout.addWidget(bg_checker_btn)
-
-        controls_layout.addSpacing(5)
-
-        # Background colors
-        bg_black_btn = QPushButton()
-        bg_black_btn.setIconSize(QSize(20, 20))
-        bg_black_btn.setFixedSize(40, 40)
-        bg_black_btn.setStyleSheet("background-color: black; border: 1px solid #555;")
-        bg_black_btn.setToolTip("Black Background")
-        bg_black_btn.clicked.connect(lambda: self.preview_widget.set_background_color(QColor(0, 0, 0)))
-        controls_layout.addWidget(bg_black_btn)
-
-        bg_gray_btn = QPushButton()
-        bg_gray_btn.setIconSize(QSize(20, 20))
-        bg_gray_btn.setFixedSize(40, 40)
-        bg_gray_btn.setStyleSheet("background-color: #2a2a2a; border: 1px solid #555;")
-        bg_gray_btn.setToolTip("Gray Background")
-        bg_gray_btn.clicked.connect(lambda: self.preview_widget.set_background_color(QColor(42, 42, 42)))
-        controls_layout.addWidget(bg_gray_btn)
-
-        bg_white_btn = QPushButton()
-        bg_white_btn.setIconSize(QSize(20, 20))
-        bg_white_btn.setFixedSize(40, 40)
-        bg_white_btn.setStyleSheet("background-color: white; border: 1px solid #555;")
-        bg_white_btn.setToolTip("White Background")
-        bg_white_btn.clicked.connect(lambda: self.preview_widget.set_background_color(QColor(255, 255, 255)))
-        controls_layout.addWidget(bg_white_btn)
-
-        controls_layout.addStretch()
+        # Keep tile state stubs for _set_tiled_preview compat
+        self._tile_n    = 1
+        self._tile_btns = {}
 
         return controls_frame
 
@@ -7127,6 +7165,24 @@ class TXDWorkshop(QWidget): #vers 3
                 self.main_window.log_message(f"Error selecting TXD: {str(e)}")
 
 
+    def _show_txd_search(self): #vers 1
+        """Toggle TXD search box visibility."""
+        if hasattr(self, 'txd_search_box'):
+            visible = not self.txd_search_box.isVisible()
+            self.txd_search_box.setVisible(visible)
+            if visible:
+                self.txd_search_box.setFocus()
+            else:
+                self.txd_search_box.clear()
+
+    def _filter_txd_list(self, text: str): #vers 1
+        """Filter TXD list by search text."""
+        if not hasattr(self, 'txd_list_widget'): return
+        for i in range(self.txd_list_widget.count()):
+            item = self.txd_list_widget.item(i)
+            item.setHidden(bool(text) and text.lower() not in item.text().lower())
+
+
     def _extract_txd_from_img(self, entry): #vers 2
         """Extract TXD data from IMG entry"""
         try:
@@ -10035,6 +10091,27 @@ class TXDWorkshop(QWidget): #vers 3
 
             # Read 88-byte header
             platform_id, filter_mode, uv_addressing = struct.unpack('<I2B', txd_data[pos:pos+6])[:3]
+
+            # ── Xbox (platform_id == 5): delegate to Xbox parser ──────────────
+            if platform_id == 5:
+                try:
+                    from apps.methods.txd_platform_xbox import parse_xbox_nativetex
+                    xbox_tex = parse_xbox_nativetex(txd_data, offset, index)
+                    if xbox_tex:
+                        # Decode compressed data to RGBA for display
+                        if xbox_tex.get('compressed_data') and not xbox_tex.get('rgba_data'):
+                            fmt = xbox_tex.get('format', 'DXT1')
+                            w   = xbox_tex.get('width', 0)
+                            h   = xbox_tex.get('height', 0)
+                            if w > 0 and h > 0 and 'DXT' in fmt:
+                                xbox_tex['rgba_data'] = self._decompress_texture(
+                                    xbox_tex['compressed_data'], w, h, fmt)
+                        return xbox_tex
+                except Exception as _xe:
+                    print(f"[Xbox TXD] Texture {index}: {_xe}")
+                return tex  # return empty rather than crash
+            # ── End Xbox ─────────────────────────────────────────────────────
+
             pos += 8  # Skip padding
 
             name_bytes = txd_data[pos:pos+32]
@@ -10934,22 +11011,42 @@ class TXDWorkshop(QWidget): #vers 3
         dialog.exec()
 
     #Left side vertical panel
-    def _create_transform_icon_panel(self): #vers 12
-        """Create transform panel with icons - aligned with text panel"""
+    def _create_transform_icon_panel(self): #vers 13
+        """2-column icon grid — auto-expands columns so all buttons fit vertically."""
         self.transform_icon_panel = QFrame()
         self.transform_icon_panel.setFrameStyle(QFrame.Shape.StyledPanel)
-        self.transform_icon_panel.setMinimumWidth(45)
-        self.transform_icon_panel.setMaximumWidth(45)
 
-        layout = QVBoxLayout(self.transform_icon_panel)
-        layout.setContentsMargins(3, 5, 3, 5)
-        layout.setSpacing(1)
+        # Use a grid layout — buttons placed left-to-right, top-to-bottom in n_cols
+        outer = QVBoxLayout(self.transform_icon_panel)
+        outer.setContentsMargins(2, 4, 2, 4)
+        outer.setSpacing(0)
 
-        btn_height = 32
-        btn_width = 40
-        icon_size = QSize(20, 20)
-        spacer = 3
+        from PyQt6.QtWidgets import QGridLayout
+        grid = QGridLayout()
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setSpacing(2)
+        outer.addLayout(grid)
+        outer.addStretch()
 
+        # We will track all (btn, attr) pairs and place them after
+        self._icon_panel_grid = grid
+        self._icon_panel_buttons = []   # populated below; placed in _place_icon_grid()
+
+        btn_height = 24   # compact when docked — kept as local for compat
+        btn_width  = 34
+        icon_size  = QSize(16, 16)
+        spacer     = 0   # grid handles spacing
+
+        def _add(btn):
+            """Register a button for grid placement."""
+            self._icon_panel_buttons.append(btn)
+            return btn
+
+        layout = type('_FakeLayout', (), {
+            'addWidget': lambda self2, w, *a, **kw: _add(w),
+            'addSpacing': lambda self2, *a: None,
+            'addStretch': lambda self2: None,
+        })()
         layout.addSpacing(2)
 
         # Flip Vertical
@@ -11153,9 +11250,30 @@ class TXDWorkshop(QWidget): #vers 3
         self.props_btn.setToolTip("Show texture properties")
         layout.addWidget(self.props_btn)
 
-        layout.addStretch()
+        # Place buttons into the 2-column grid
+        self._place_icon_grid()
         return self.transform_icon_panel
 
+    def _place_icon_grid(self, n_cols=2): #vers 1
+        """Place registered icon buttons into the grid with n_cols columns.
+        Called after all buttons are registered. Also called on resize to reflow."""
+        grid = self._icon_panel_grid
+        btns = self._icon_panel_buttons
+        # Clear existing grid
+        for i in range(grid.count()-1, -1, -1):
+            item = grid.itemAt(i)
+            if item and item.widget():
+                grid.removeWidget(item.widget())
+        # Place in n_cols columns
+        for idx, btn in enumerate(btns):
+            row = idx // n_cols
+            col = idx % n_cols
+            grid.addWidget(btn, row, col)
+        # Set panel width to fit n_cols * btn_size
+        btn_w = 36   # 34 + 2px spacing
+        panel_w = n_cols * btn_w + 6
+        self.transform_icon_panel.setMinimumWidth(panel_w)
+        self.transform_icon_panel.setMaximumWidth(panel_w + 4)
 
     def _create_transform_text_panel(self): #vers 13
         """Text+icon buttons — shown when panel is wide enough.
@@ -11220,102 +11338,69 @@ class TXDWorkshop(QWidget): #vers 3
         self._edit_texture_external()
 
 
-    def _open_paint_editor(self): #vers 2
-        """Open simple paint editor — direct pixel drawing on the texture."""
+    def _open_paint_editor(self): #vers 4
+        """Open DP5 Workshop paint editor for the selected texture."""
         if not self.selected_texture or not self.selected_texture.get('rgba_data'):
-            QMessageBox.warning(self, "No Texture", "Select a texture first.")
+            QMessageBox.warning(self, "No Texture",
+                "Select a texture with RGBA data first.")
             return
+        try:
+            from apps.components.DP5_Workshop.dp5_workshop import DP5Workshop
+            from PyQt6.QtWidgets import QVBoxLayout, QDialog
 
-        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
-            QPushButton, QLabel, QSlider, QColorDialog, QSizePolicy)
-        from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor, QCursor
-        from PyQt6.QtCore import Qt, QPoint
+            tex  = self.selected_texture
+            w    = tex.get('width', 256)
+            h    = tex.get('height', 256)
+            rgba = bytearray(tex['rgba_data'])
 
-        tex = self.selected_texture
-        width, height = tex['width'], tex['height']
-        rgba = bytearray(tex['rgba_data'])
+            # Create DP5 as a modal dialog so TXD Workshop waits for the edit
+            dlg = QDialog(self)
+            dlg.setWindowTitle(f"DP5 Paint — {tex.get('name', 'texture')}")
+            dlg.resize(1400, 820)
+            lay = QVBoxLayout(dlg)
+            lay.setContentsMargins(0, 0, 0, 0)
 
-        dlg = QDialog(self)
-        dlg.setWindowTitle(f"Paint — {tex['name']}  ({width}x{height})")
-        dlg.setMinimumSize(max(width + 120, 400), max(height + 120, 400))
+            workshop = DP5Workshop(dlg, None)
+            workshop.setWindowFlags(Qt.WindowType.Widget)
 
-        # State
-        state = {'color': QColor(255, 0, 0, 255), 'size': 1, 'rgba': rgba}
+            # Pre-load the texture into the canvas
+            workshop._canvas_width  = w
+            workshop._canvas_height = h
+            if workshop.dp5_canvas:
+                workshop.dp5_canvas.tex_w = w
+                workshop.dp5_canvas.tex_h = h
+                workshop.dp5_canvas.rgba  = rgba
+                workshop.dp5_canvas.update()
+                workshop._set_zoom(max(0.05, min(4, 512 / max(w, h, 1))))
 
-        # Canvas label
-        canvas = QLabel()
-        canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        canvas.setCursor(QCursor(Qt.CursorShape.CrossCursor))
-        canvas.setMinimumSize(width, height)
+            lay.addWidget(workshop)
 
-        def _refresh():
-            img = QImage(bytes(state['rgba']), width, height,
-                         width * 4, QImage.Format.Format_RGBA8888)
-            canvas.setPixmap(QPixmap.fromImage(img).scaled(
-                width, height, Qt.AspectRatioMode.KeepAspectRatio))
+            # Add OK / Cancel at the bottom
+            from PyQt6.QtWidgets import QHBoxLayout, QPushButton
+            btn_row = QHBoxLayout()
+            btn_row.addStretch()
+            ok_btn  = QPushButton("Apply to Texture")
+            ok_btn.setDefault(True)
+            ok_btn.clicked.connect(dlg.accept)
+            can_btn = QPushButton("Cancel")
+            can_btn.clicked.connect(dlg.reject)
+            btn_row.addWidget(ok_btn); btn_row.addWidget(can_btn)
+            lay.addLayout(btn_row)
 
-        def _paint_at(pos):
-            pw = canvas.pixmap()
-            if not pw: return
-            # Map widget pos to texture pixel
-            sx = pw.width(); sy = pw.height()
-            px = int(pos.x() * width  / sx)
-            py = int(pos.y() * height / sy)
-            s  = state['size']
-            r, g, b, a = (state['color'].red(), state['color'].green(),
-                          state['color'].blue(), state['color'].alpha())
-            for dy in range(-s, s+1):
-                for dx in range(-s, s+1):
-                    nx, ny = px+dx, py+dy
-                    if 0 <= nx < width and 0 <= ny < height:
-                        i = (ny * width + nx) * 4
-                        state['rgba'][i:i+4] = [r, g, b, a]
-            _refresh()
+            if dlg.exec() == QDialog.DialogCode.Accepted:
+                # Write edited RGBA back into the texture dict
+                if workshop.dp5_canvas:
+                    tex['rgba_data'] = bytes(workshop.dp5_canvas.rgba)
+                    tex['width']     = workshop.dp5_canvas.tex_w
+                    tex['height']    = workshop.dp5_canvas.tex_h
+                self._save_undo_state("DP5 Paint edit")
+                self._update_texture_info(tex)
+                self._update_table_display()
+                self._mark_as_modified()
 
-        canvas.mousePressEvent   = lambda e: _paint_at(e.position().toPoint())
-        canvas.mouseMoveEvent    = lambda e: (_paint_at(e.position().toPoint())
-                                              if e.buttons() & Qt.MouseButton.LeftButton else None)
-        _refresh()
-
-        # Controls
-        ctrl = QHBoxLayout()
-        color_btn = QPushButton("🎨 Colour")
-        def _pick():
-            c = QColorDialog.getColor(state['color'], dlg, "Pick colour",
-                                       QColorDialog.ColorDialogOption.ShowAlphaChannel)
-            if c.isValid():
-                state['color'] = c
-                color_btn.setStyleSheet(f"background:{c.name()}")
-        color_btn.clicked.connect(_pick)
-        ctrl.addWidget(color_btn)
-
-        ctrl.addWidget(QLabel("Brush:"))
-        size_sl = QSlider(Qt.Orientation.Horizontal)
-        size_sl.setRange(0, 10); size_sl.setValue(1); size_sl.setMaximumWidth(100)
-        size_sl.valueChanged.connect(lambda v: state.update({'size': v}))
-        ctrl.addWidget(size_sl)
-        ctrl.addStretch()
-
-        ok_btn  = QPushButton("✓ Apply")
-        cxl_btn = QPushButton("✗ Cancel")
-
-        def _apply():
-            self._save_undo_state("Paint edit")
-            tex['rgba_data'] = bytes(state['rgba'])
-            self._update_texture_info(tex)
-            self._update_table_display()
-            self._mark_as_modified()
-            dlg.accept()
-
-        ok_btn.clicked.connect(_apply)
-        cxl_btn.clicked.connect(dlg.reject)
-        ctrl.addWidget(ok_btn); ctrl.addWidget(cxl_btn)
-
-        lay = QVBoxLayout(dlg)
-        lay.addWidget(canvas)
-        lay.addLayout(ctrl)
-        dlg.exec()
-
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            QMessageBox.warning(self, "Paint Editor Error", str(e))
 
     def _open_filters_dialog(self): #vers 1
         """Open filters dialog"""
@@ -12256,7 +12341,7 @@ class TXDWorkshop(QWidget): #vers 3
             if not file_path:
                 file_path, _ = QFileDialog.getOpenFileName(
                     self, "Open TXD File", "",
-                    "All Texture Files (*.txd *.xtx *.txt *.dat *.toc);;TXD / XTX Files (*.txd *.xtx);;TXD Files (*.txd);;XTX Textures (*.xtx);;Mobile DB (*.txt *.dat *.toc);;All Files (*)"
+                    "All Texture Files (*.txd *.xtx *.txt *.dat *.toc *.tmb *.chk *.wtd *.ytd);;TXD Files (*.txd);;XTX Textures (*.xtx);;Mobile DB — open .dat or .txt (*.dat *.txt);;Mobile DB sidecar (*.toc *.tmb);;PS2 Splash (*.chk);;All Files (*)"
                 )
             if file_path:
                 self.current_txd_path = file_path  # Store the full path
@@ -12264,7 +12349,29 @@ class TXDWorkshop(QWidget): #vers 3
 
 
             if file_path:
-                # Route mobile texture DB files (.txt / .dat / .toc)
+                # Hard-reject non-TXD extensions before any parsing
+                _ext = os.path.splitext(file_path)[1].lower()
+                if _ext in ('.toc', '.tmb'):
+                    # .toc and .tmb are mobile DB sidecar files — never valid TXDs.
+                    # Route to mobile DB loader using the companion .dat file.
+                    try:
+                        from apps.methods.mobile_texture_db import detect_mobile_db
+                        _detected = detect_mobile_db(file_path)
+                        if _detected:
+                            self._open_mobile_texture_db(file_path)
+                        else:
+                            from PyQt6.QtWidgets import QMessageBox
+                            QMessageBox.warning(
+                                self, "Unsupported File",
+                                f"{os.path.basename(file_path)} is a mobile texture sidecar "
+                                "(.toc/.tmb).\n\nOpen the matching .dat or .txt file instead "
+                                "to load the full texture database."
+                            )
+                    except Exception as _e:
+                        print(f"[TXDWorkshop] Mobile DB error: {_e}")
+                    return
+
+                # Route mobile texture DB files (.txt / .dat)
                 try:
                     from apps.methods.mobile_texture_db import detect_mobile_db
                     if detect_mobile_db(file_path):
@@ -12273,9 +12380,19 @@ class TXDWorkshop(QWidget): #vers 3
                 except Exception:
                     pass  # not a mobile DB — fall through to TXD
 
+                # Route .chk files to CHK parser (GTA III PS2 splash)
+                if file_path.lower().endswith('.chk'):
+                    self._open_chk_file(file_path)
+                    return
+
                 # Route .xtx files to XTX reader
                 if file_path.lower().endswith('.xtx'):
                     self._open_xtx_file(file_path)
+                    return
+
+                # ── Undocumented: XTD texture dicts (.wtd/.ytd) ──────────────
+                if _ext in ('.wtd', '.ytd'):
+                    self._open_xtd_file(file_path)
                     return
 
                 # Detect PS2 TXD before full parse
@@ -12311,6 +12428,248 @@ class TXDWorkshop(QWidget): #vers 3
             QMessageBox.critical(self, "Error", f"Failed to open TXD: {str(e)}")
 
 
+
+    # ── Texture Tools ─────────────────────────────────────────────────────────
+
+    def _get_current_rgba(self):
+        """Return (rgba, w, h, name) for the selected texture, or (None,0,0,'')."""
+        t = getattr(self, 'selected_texture', None)
+        if not t:
+            return None, 0, 0, ''
+        return (t.get('rgba_data', b''), t.get('width', 0),
+                t.get('height', 0), t.get('name', 'texture'))
+
+    def _set_current_rgba(self, rgba: bytes):
+        """Replace selected texture rgba_data and refresh preview."""
+        t = getattr(self, 'selected_texture', None)
+        if not t:
+            return
+        t['rgba_data'] = rgba
+        t['modified']  = True
+        # Also update the texture_list entry
+        row = self.texture_table.currentRow() if hasattr(self, 'texture_table') else -1
+        if row >= 0 and hasattr(self, 'texture_list') and row < len(self.texture_list):
+            self.texture_list[row]['rgba_data'] = rgba
+        # Refresh preview using the existing display pipeline
+        try:
+            self._update_texture_info(t)
+        except Exception:
+            try:
+                from PyQt6.QtGui import QImage, QPixmap
+                qi = QImage(rgba, t['width'], t['height'],
+                            t['width'] * 4, QImage.Format.Format_RGBA8888)
+                self.preview_widget.setPixmap(QPixmap.fromImage(qi))
+            except Exception:
+                pass
+
+    def _open_colour_adjust(self): #vers 1
+        """Colour adjustments — brightness/contrast/hue/sat/sharp/opacity."""
+        from apps.methods.txd_tools import ColourAdjustDialog
+        rgba, w, h, name = self._get_current_rgba()
+        if not rgba:
+            if hasattr(self, 'status_label'): self.status_label.setText("Select a texture first")
+            return
+        dlg = ColourAdjustDialog(rgba, w, h, name, self)
+        dlg.applied.connect(self._set_current_rgba)
+        dlg.exec()
+
+    def _open_seamless_tool(self): #vers 1
+        """Seamless texture conversion tool."""
+        from apps.methods.txd_tools import SeamlessDialog
+        rgba, w, h, name = self._get_current_rgba()
+        if not rgba:
+            if hasattr(self, 'status_label'): self.status_label.setText("Select a texture first")
+            return
+        dlg = SeamlessDialog(rgba, w, h, name, self)
+        dlg.applied.connect(self._set_current_rgba)
+        dlg.exec()
+
+    def _open_snow_tool(self): #vers 1
+        """Snow effect generator."""
+        from apps.methods.txd_tools import SnowDialog
+        rgba, w, h, name = self._get_current_rgba()
+        if not rgba:
+            if hasattr(self, 'status_label'): self.status_label.setText("Select a texture first")
+            return
+        dlg = SnowDialog(rgba, w, h, name, self)
+        dlg.applied.connect(self._set_current_rgba)
+        dlg.exec()
+
+    def _set_tiled_preview(self, n: int): #vers 1
+        """Switch preview tiling: 1x1, 2x2, 3x3."""
+        # Update cycle button label/tooltip
+        self._tile_n = n
+        if hasattr(self, '_tile_btn'):
+            self._tile_btn.setToolTip(
+                f"{n}×{n} tiled preview — click to cycle")
+        # Update preview widget if it supports tiling
+        if hasattr(self, 'preview_widget') and hasattr(self.preview_widget, 'set_tile'):
+            self.preview_widget.set_tile(n)
+        else:
+            # Fallback: re-render with tiling via PIL
+            rgba, w, h, _ = self._get_current_rgba()
+            if rgba and n > 1:
+                try:
+                    from PIL import Image
+                    img = Image.frombytes('RGBA', (w, h), rgba)
+                    tiled = Image.new('RGBA', (w * n, h * n))
+                    for y in range(n):
+                        for x in range(n):
+                            tiled.paste(img, (x * w, y * h))
+                    from PyQt6.QtGui import QImage, QPixmap
+                    td = tiled.tobytes()
+                    qi = QImage(td, tiled.width, tiled.height,
+                                tiled.width * 4, QImage.Format.Format_RGBA8888)
+                    pm = QPixmap.fromImage(qi)
+                    if hasattr(self, 'preview_widget'):
+                        self.preview_widget.setPixmap(pm.scaled(
+                            self.preview_widget.size(),
+                            Qt.AspectRatioMode.KeepAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation))
+                except Exception as e:
+                    if hasattr(self, 'status_label'):
+                        self.status_label.setText(f"Tiled preview error: {e}")
+            elif n == 1:
+                t = getattr(self, 'selected_texture', None)
+                if t:
+                    try: self._update_texture_info(t)
+                    except Exception: pass
+
+    def _open_alpha_coverage(self): #vers 1
+        """Scale alpha for mipmap coverage (foliage, fences, decals)."""
+        from apps.methods.txd_tools import compute_mip0_coverage, scale_alpha_for_coverage
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDoubleSpinBox
+        from PyQt6.QtWidgets import QHBoxLayout, QPushButton, QCheckBox
+
+        rgba, w, h, name = self._get_current_rgba()
+        if not rgba:
+            self._set_status("Select a texture first"); return
+
+        coverage = compute_mip0_coverage(rgba, w, h)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(f"Alpha Coverage — {name}")
+        lo = QVBoxLayout(dlg)
+
+        lo.addWidget(QLabel(
+            "Current mip-0 alpha coverage: " + "{:.1%}".format(coverage) +
+            "\n\nThis tool scales the alpha channel so that downsampled\n"
+            "mip levels preserve the same coverage fraction.\n"
+            "Critical for SA foliage, fences, and decals."))
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Target coverage:"))
+        sp = QDoubleSpinBox()
+        sp.setRange(0.01, 1.0); sp.setSingleStep(0.01)
+        sp.setValue(round(coverage, 2)); sp.setDecimals(2)
+        row.addWidget(sp)
+        lo.addLayout(row)
+
+        use_mip = QCheckBox("Apply to all mip levels (recommended)")
+        use_mip.setChecked(True)
+        lo.addWidget(use_mip)
+
+        btns = QHBoxLayout()
+        ok = QPushButton("Apply"); ok.setDefault(True)
+        cancel = QPushButton("Cancel")
+        ok.clicked.connect(dlg.accept); cancel.clicked.connect(dlg.reject)
+        btns.addWidget(ok); btns.addWidget(cancel)
+        lo.addLayout(btns)
+
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            target = sp.value()
+            new_rgba = scale_alpha_for_coverage(rgba, w, h, target)
+            self._set_current_rgba(new_rgba)
+            new_cov = compute_mip0_coverage(new_rgba, w, h)
+            msg = "Alpha coverage adjusted: {:.1%} -> {:.1%} (target {:.1%})".format(
+                coverage, new_cov, target)
+            if hasattr(self, 'status_label'): self.status_label.setText(msg)
+
+    def _open_xtd_file(self, file_path: str): #vers 1
+        """Open a XTD texture dictionary (.wtd GTA IV / .ytd GTA V/RDR2).
+        Read-only import source — textures appear in the list for export or
+        transfer into a regular TXD session.  Completely unsupported/undocumented.
+        """
+        try:
+            from apps.methods.xtd_textures import open_xtd_dict, get_xtd_game
+            from PyQt6.QtWidgets import QProgressDialog
+            from PyQt6.QtCore import Qt
+            import os
+
+            game = get_xtd_game(file_path)
+            name = os.path.basename(file_path)
+
+            prog = QProgressDialog(f"Reading {name}…", None, 0, 0, self)
+            prog.setWindowModality(Qt.WindowModality.WindowModal)
+            prog.setMinimumDuration(300)
+            prog.show()
+            from PyQt6.QtWidgets import QApplication
+            QApplication.processEvents()
+
+            rd = open_xtd_dict(file_path)
+            prog.close()
+
+            if rd.error:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "Cannot open",
+                    f"{name}\n\n{rd.error}")
+                return
+
+            if not rd.textures:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.information(self, "No textures",
+                    f"No textures found in {name}.")
+                return
+
+            # Build synthetic texture list matching our internal format
+            txd_list = []
+            for rt in rd.textures:
+                # Build a minimal texture dict matching what _load_txd_textures produces
+                entry = {
+                    'name':          rt.name,
+                    'width':         rt.width,
+                    'height':        rt.height,
+                    'format_name':   rt.fmt,
+                    'bit_depth':     32,
+                    'mipmap_count':  rt.mips,
+                    'rgba_data':     rt.rgba if rt.rgba else bytes(rt.width * rt.height * 4),
+                    'raw_data':      rt.raw,
+                    'has_alpha':     True,
+                    'has_bumpmap':   False,
+                    'bumpmap_data':  b'',
+                    'alpha_name':    '',
+                    'raster_format': 0x0500,  # RASTER_DEFAULT
+                    'platform_id':   9,        # PC
+                    'filter_flags':  0,
+                    'is_xtd_import': True,    # marker — read-only
+                    'xtd_game':     rd.game,
+                    'xtd_fmt':      rt.fmt,
+                }
+                txd_list.append(entry)
+
+            self.txd_list = txd_list
+            self.current_txd_path  = file_path
+            self.current_txd_name  = name
+            self.txd_version_str   = f"XTD RSC{'7' if rd.game=='IV' else '8'} v{rd.version}"
+            self.txd_platform_name = f"GTA {rd.game} PC"
+            self.txd_game          = f"GTA {rd.game}"
+
+            self._populate_txd_list()
+            self.setWindowTitle(f"TXD Workshop: {name} [GTA {rd.game}]")
+
+            # Status bar hint that this is read-only
+            self._set_status(
+                f"GTA {rd.game} — {len(txd_list)} textures  |  "
+                f"read-only import source  |  "
+                f"export or drag into a TXD session to use")
+
+            self.log_message(f"Opened {name}: {len(txd_list)} textures (GTA {rd.game})")
+
+        except Exception as e:
+            import traceback
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Error", f"Failed to open XTD dict:\n{e}")
+            traceback.print_exc()
 
     def _open_xtx_file(self, file_path: str): #vers 1
         """Open a VCS PS2/PC XTX palettized texture and display it in the workshop."""
@@ -12351,6 +12710,39 @@ class TXDWorkshop(QWidget): #vers 3
         """Safe logging — uses print() since TXDWorkshop has no log_message."""
         print(f"[TXDWorkshop] {msg}")
 
+    def _open_chk_file(self, file_path: str): #vers 1
+        """Open a GTA III PS2 CHK splash texture file."""
+        try:
+            from apps.methods.chk_parser import load_chk
+            tex = load_chk(file_path)
+            if not tex:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "CHK Error", f"Failed to parse CHK file:\n{file_path}")
+                return
+
+            name = tex['name']
+            self.setWindowTitle(f"TXD Workshop: {name}.CHK [{tex['width']}×{tex['height']}]")
+            self._set_status(f"Opened CHK: {name}  "
+                             f"{tex['width']}×{tex['height']}  8bpp palettised")
+
+            # Display as a single-texture list
+            if hasattr(self, 'texture_list'):
+                self.texture_list.clear()
+            if hasattr(self, 'texture_table'):
+                self.texture_table.setRowCount(0)
+
+            self._add_texture_to_table(tex)
+            self.textures = [tex]
+            self.selected_texture = tex
+
+            # Show in preview
+            if tex.get('rgba_data') and tex['width'] > 0:
+                self._display_rgba_preview(tex['rgba_data'], tex['width'], tex['height'])
+
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            print(f"[TXDWorkshop] CHK error: {e}")
+
     def _open_mobile_texture_db(self, file_path: str): #vers 1
         """Open a mobile texture database (.txt+.toc+.dat+.tmb quad-file set).
         Supports SA/VC iOS (PVRTC) and Android (ETC1) mobile texture formats."""
@@ -12363,8 +12755,10 @@ class TXDWorkshop(QWidget): #vers 3
             if db is None:
                 QMessageBox.warning(self, "Mobile DB",
                     "Could not recognise as a mobile texture database.\n"
-                    "Expected: name.txt + name.pvr.dat + name.pvr.toc\n"
-                    "       or: name.txt + name.etc.dat + name.etc.toc")
+                    "Expected: name.txt + name.pvr.dat (SA iOS/VC iOS)\n"
+                    "       or: name.dxt.dat + name.dxt.toc (SA Android)\n"
+                    "       or: name.pvr.dat + name.pvr.toc (VC Android)\n"
+                    "Open the .dat or .txt file, not the .toc or .tmb sidecar.")
                 return
 
             if db.errors:

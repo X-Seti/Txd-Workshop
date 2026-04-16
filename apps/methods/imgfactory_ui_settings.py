@@ -51,7 +51,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         )
         self.setMinimumWidth(540)
         self.setMinimumHeight(440)
-        self.resize(580, 520)
+        self.resize(696, 624)
 
         self._create_ui()
 
@@ -68,6 +68,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         tabs.addTab(self._create_ui_tab(), "UI")
         tabs.addTab(self._create_file_window_tab(), "File Window")
         tabs.addTab(self._create_advanced_tab(), "Advanced")
+        tabs.addTab(self._create_right_panel_tab(), "Right Panel")
         tabs.addTab(self._create_debug_log_tab(), "Debug Log")
 
         main_layout.addWidget(tabs)
@@ -274,6 +275,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         ui_mode_layout = QVBoxLayout(ui_mode_group)
 
         self.ui_mode_button_group = QButtonGroup(self)
+        self._original_ui_mode = self.img_settings.get("ui_mode", "system")
 
         # System UI option
         system_container = QWidget()
@@ -282,6 +284,12 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
 
         self.system_ui_radio = QRadioButton("System UI")
         system_layout.addWidget(self.system_ui_radio)
+
+        # Restart required notice
+        from PyQt6.QtWidgets import QLabel as _QL
+        self._restart_notice = _QL("⚠  Restart required for UI mode changes to take effect")
+        self._restart_notice.setStyleSheet("color: #f90; font-size: 10px; padding: 4px;")
+        self._restart_notice.setVisible(False)
 
         system_desc = QLabel("Standard window with menu bar")
         system_desc.setStyleSheet("color: #888; font-size: 10px; margin-left: 25px;")
@@ -429,6 +437,17 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         else:
             self.system_ui_radio.setChecked(True)
 
+        # Connect radios to show restart notice
+        def _on_mode_changed():
+            if hasattr(self, '_restart_notice') and hasattr(self, '_original_ui_mode'):
+                new_mode = "custom" if self.custom_ui_radio.isChecked() else "system"
+                self._restart_notice.setVisible(new_mode != self._original_ui_mode)
+        self.system_ui_radio.toggled.connect(_on_mode_changed)
+        self.custom_ui_radio.toggled.connect(_on_mode_changed)
+
+        if hasattr(self, '_restart_notice'):
+            ui_mode_layout.addWidget(self._restart_notice)
+
         ui_mode_group.setLayout(ui_mode_layout)
         layout.addWidget(ui_mode_group)
 
@@ -447,6 +466,23 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         self.show_menu_bar_check = QCheckBox("Show menu bar")
         self.show_menu_bar_check.setChecked(self.img_settings.get("show_menu_bar", True))
         appearance_layout.addWidget(self.show_menu_bar_check)
+
+        # ── IMG Factory menu orientation ─────────────────────────────────
+        from PyQt6.QtWidgets import QGroupBox as _GB, QVBoxLayout as _VL, QRadioButton as _RB
+
+        img_orient_group = _GB("IMG Factory — Menu Orientation")
+        img_orient_layout = _VL(img_orient_group)
+        img_orient = self.img_settings.get("img_menu_orientation", "topbar")
+        self.img_menu_topbar_radio   = _RB("Topbar  (menubar below titlebar)")
+        self.img_menu_dropdown_radio = _RB("Dropdown  (Menu button popup)")
+        self.img_menu_topbar_radio.setChecked(img_orient == "topbar")
+        self.img_menu_dropdown_radio.setChecked(img_orient != "topbar")
+        img_orient_layout.addWidget(self.img_menu_topbar_radio)
+        img_orient_layout.addWidget(self.img_menu_dropdown_radio)
+        img_orient_group.setLayout(img_orient_layout)
+        appearance_layout.addWidget(img_orient_group)
+
+
 
         appearance_group.setLayout(appearance_layout)
         layout.addWidget(appearance_group)
@@ -587,6 +623,82 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
 
         return button_layout
 
+    def _create_right_panel_tab(self): #vers 1
+        """Right Panel — button height, spacing, display mode for the IMG/Entries/Options sections."""
+        from PyQt6.QtWidgets import QSlider
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(8)
+
+        # Read from app_settings (where gui_layout reads them)
+        app_s = getattr(self.main_window, 'app_settings', None)
+        cs = app_s.current_settings if app_s else {}
+
+        # ── Button Size & Spacing ──────────────────────────────────────────
+        size_grp = QGroupBox("Button Size && Spacing")
+        size_lay = QVBoxLayout(size_grp); size_lay.setSpacing(6)
+
+        def spin_row(label, attr, lo, hi, val, suffix=' px'):
+            from PyQt6.QtWidgets import QSpinBox
+            row = QHBoxLayout()
+            row.addWidget(QLabel(label))
+            sp = QSpinBox(); sp.setRange(lo, hi); sp.setValue(val)
+            sp.setSuffix(suffix); sp.setMaximumWidth(80)
+            setattr(self, attr, sp)
+            row.addWidget(sp); row.addStretch()
+            return row
+
+        size_lay.addLayout(spin_row("Button height:",
+            'rp_btn_height', 16, 60, cs.get('button_height', 32)))
+        size_lay.addLayout(spin_row("Vertical spacing:",
+            'rp_v_spacing', 0, 30, cs.get('button_spacing_vertical', 8)))
+        size_lay.addLayout(spin_row("Horizontal spacing:",
+            'rp_h_spacing', 0, 30, cs.get('button_spacing_horizontal', 6)))
+        layout.addWidget(size_grp)
+
+        # ── Button Display Mode ────────────────────────────────────────────
+        mode_grp = QGroupBox("Button Display Mode")
+        mode_lay = QVBoxLayout(mode_grp); mode_lay.setSpacing(4)
+        cur_mode = cs.get('button_display_mode', 'text_only')
+        self.rp_mode_icon   = QRadioButton("Icon only")
+        self.rp_mode_text   = QRadioButton("Text only")
+        self.rp_mode_both   = QRadioButton("Icon + Text")
+        self.rp_mode_icon.setChecked(cur_mode == 'icon_only')
+        self.rp_mode_text.setChecked(cur_mode == 'text_only')
+        self.rp_mode_both.setChecked(cur_mode == 'both')
+        for rb in (self.rp_mode_icon, self.rp_mode_text, self.rp_mode_both):
+            mode_lay.addWidget(rb)
+        layout.addWidget(mode_grp)
+
+        layout.addStretch()
+        return widget
+
+    def _save_right_panel_tab(self): #vers 1
+        """Save right panel settings back to app_settings and apply live."""
+        app_s = getattr(self.main_window, 'app_settings', None)
+        if not app_s:
+            return
+        if hasattr(self, 'rp_btn_height'):
+            app_s.current_settings['button_height'] = self.rp_btn_height.value()
+        if hasattr(self, 'rp_v_spacing'):
+            app_s.current_settings['button_spacing_vertical'] = self.rp_v_spacing.value()
+        if hasattr(self, 'rp_h_spacing'):
+            app_s.current_settings['button_spacing_horizontal'] = self.rp_h_spacing.value()
+        mode = ('icon_only' if getattr(self, 'rp_mode_icon', None) and self.rp_mode_icon.isChecked()
+                else 'both' if getattr(self, 'rp_mode_both', None) and self.rp_mode_both.isChecked()
+                else 'text_only')
+        app_s.current_settings['button_display_mode'] = mode
+        app_s.save_settings()
+        # Apply live
+        try:
+            gl = getattr(self.main_window, 'gui_layout', None)
+            if gl:
+                gl.button_display_mode = mode
+                if hasattr(gl, '_update_all_buttons_display_mode'):
+                    gl._update_all_buttons_display_mode()
+        except Exception:
+            pass
+
     def _create_debug_log_tab(self): #vers 2
         """Create Debug Log tab - output destinations + per-feature toggles."""
         from PyQt6.QtWidgets import QGridLayout, QScrollArea, QGroupBox
@@ -672,6 +784,15 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         self.img_settings.set("show_status_bar", self.show_status_bar_check.isChecked())
         self.img_settings.set("show_menu_bar", self.show_menu_bar_check.isChecked())
 
+        # IMG Factory menu orientation — live apply
+        img_orient = "topbar" if getattr(self, 'img_menu_topbar_radio', None) and self.img_menu_topbar_radio.isChecked() else "dropdown"
+        self.img_settings.set("img_menu_orientation", img_orient)
+        try:
+            if hasattr(self.main_window, 'set_img_menu_orientation'):
+                self.main_window.set_img_menu_orientation(img_orient)
+        except Exception:
+            pass
+
         # File Window tab
         self.img_settings.set("autoload_directory_tree", self.autoload_tree_cb.isChecked())
         self.img_settings.set("enable_pin_files", self.enable_pin_files_cb.isChecked())
@@ -712,6 +833,9 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         except Exception:
             pass
 
+        # Right Panel tab
+        self._save_right_panel_tab()
+
         self.img_settings.save_settings()
 
     def _apply_settings(self): #vers 1
@@ -747,11 +871,73 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
 
         QMessageBox.information(self, "Settings Applied", "Settings have been applied successfully.")
 
-    def _save_and_close(self): #vers 1
-        """Save settings and close dialog"""
+    def _save_and_close(self): #vers 2
+        """Save settings, handle restart if UI mode changed, then close."""
         self._save_settings()
         self._apply_settings()
         self.accept()
+
+        # Check if UI mode changed — requires restart
+        new_mode = "custom" if self.custom_ui_radio.isChecked() else "system"
+        if new_mode != self._original_ui_mode:
+            self._prompt_restart()
+
+    def _prompt_restart(self): #vers 1
+        """If files are open, ask user to save first, then restart."""
+        mw = self.main_window
+
+        # Check for open files
+        open_files = getattr(mw, 'open_files', {})
+        has_open = bool(open_files)
+
+        if has_open:
+            reply = QMessageBox.question(
+                mw,
+                "Restart Required",
+                ("UI mode has changed — a restart is required.\n\n"
+                 "You have files open. Please save all work before restarting.\n\n"
+                 "Save all and restart now?"),
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No |
+                QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel
+            )
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.Yes:
+                # Try to save all open files
+                try:
+                    if hasattr(mw, 'save_all_open_files'):
+                        mw.save_all_open_files()
+                    elif hasattr(mw, 'save_img_file'):
+                        mw.save_img_file()
+                except Exception as _se:
+                    QMessageBox.warning(mw, "Save Error",
+                        f"Could not save all files: {_se}\n\nPlease save manually then restart.")
+                    return
+        else:
+            reply = QMessageBox.question(
+                mw,
+                "Restart Required",
+                "UI mode has changed — a restart is required to apply changes.\n\nRestart now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        self._do_restart(mw)
+
+    def _do_restart(self, mw): #vers 1
+        """Restart the application."""
+        import sys, os
+        from PyQt6.QtWidgets import QApplication
+        try:
+            QApplication.quit()
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except Exception as e:
+            QMessageBox.critical(mw, "Restart Failed",
+                f"Could not restart automatically: {e}\n\nPlease close and reopen IMG Factory.")
 
     def _reset_settings(self): #vers 1
         """Reset to default settings"""

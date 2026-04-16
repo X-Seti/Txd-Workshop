@@ -15,6 +15,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QDateTime  # Fixed: Added QDateTime
 from PyQt6.QtGui import QFont
 
 from PyQt6.QtWidgets import (
+    QSizePolicy,
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QButtonGroup, QRadioButton, QLabel, QPushButton,
     QComboBox, QCheckBox, QSpinBox, QMenu, QSlider, QSplitter,
@@ -39,10 +40,9 @@ except ImportError:
     try:
         from PIL import ImageGrab
         PIL_AVAILABLE = True
-        print("MSS not available, using PIL fallback")
+        # MSS not installed — PIL fallback active (silent)
     except ImportError:
         PIL_AVAILABLE = False
-        print("Neither MSS nor PIL available - using Qt fallback")
 
 
 ##Methods to add to SettingsDialog class
@@ -1243,35 +1243,34 @@ class ThemeColorEditor(QWidget): #vers 4
         self.lock_check.stateChanged.connect(self._on_lock_changed)
         layout.addWidget(self.lock_check)
 
-        # Color name label - FIXED WIDTH for alignment
+        # Color name label — expands to fill available space
         name_label = QLabel(self.color_name)
-        name_label.setMinimumWidth(150)
-        name_label.setMaximumWidth(150)
+        name_label.setMinimumWidth(140)
+        from PyQt6.QtWidgets import QSizePolicy as _SP
+        name_label.setSizePolicy(_SP.Policy.Expanding, _SP.Policy.Preferred)
         layout.addWidget(name_label)
 
-        # Color preview
+        # Color preview swatch
         self.color_preview = QLabel()
-        self.color_preview.setFixedSize(30, 30)
+        self.color_preview.setFixedSize(28, 28)
         self.update_preview(self.current_value)
         layout.addWidget(self.color_preview)
 
-        # Color value input - FIXED WIDTH for column alignment
+        # Hex value input — fixed width for column alignment
         self.color_input = QLineEdit(self.current_value)
-        self.color_input.setMinimumWidth(85)
-        self.color_input.setMaximumWidth(85)
+        self.color_input.setFixedWidth(82)
         self.color_input.setFont(QFont("monospace", 9))
         self.color_input.textChanged.connect(self.on_color_changed)
         layout.addWidget(self.color_input)
 
-        # Color dialog button - FIXED: Wider for better visibility
+        # Pick button — fixed width, sits flush at right edge
         dialog_btn = QPushButton("Pick")
-        dialog_btn.setMinimumWidth(80)  # CHANGED from setFixedSize(50, 25)
-        dialog_btn.setFixedHeight(30)
+        dialog_btn.setFixedWidth(54)
+        dialog_btn.setFixedHeight(28)
         dialog_btn.setToolTip("Open color picker dialog")
         dialog_btn.clicked.connect(self.open_color_dialog)
         layout.addWidget(dialog_btn)
-
-        layout.addStretch()
+        # NO addStretch() — name_label expansion handles alignment
 
     def _on_lock_changed(self, state): #vers 1
         """Handle lock state change"""
@@ -1790,22 +1789,30 @@ class AppSettings:
         QTabWidget::pane {{
             border: 1px solid {border};
             background-color: {bg_primary};
+            margin-top: 2px;
         }}
 
         QTabBar::tab {{
             background-color: {bg_secondary};
             border: 1px solid {border};
-            padding: 8px 16px;
-            color: {text_primary};
+            border-bottom: 3px solid transparent;
+            padding: 6px 16px;
+            color: {text_secondary};
+            margin-bottom: 0px;
+            margin-right: 2px;
         }}
 
         QTabBar::tab:selected {{
-            background-color: {accent_primary};
-            color: white;
+            background-color: {bg_primary};
+            color: {text_primary};
+            border-bottom: 3px solid {accent_primary};
+            font-weight: bold;
         }}
 
-        QTabBar::tab:hover {{
+        QTabBar::tab:hover:!selected {{
             background-color: {button_hover};
+            color: {text_primary};
+            border-bottom: 3px solid {accent_secondary};
         }}
 
         QComboBox {{
@@ -1876,34 +1883,67 @@ class AppSettings:
 
         QScrollBar:vertical {{
             background-color: {bg_secondary};
-            width: 14px;
-            border: 1px solid {border};
+            width: 12px;
+            border: none;
+            margin: 0px;
         }}
-
         QScrollBar::handle:vertical {{
-            background-color: {button_normal};
-            min-height: 20px;
-            border-radius: 4px;
+            background-color: {border};
+            min-height: 30px;
+            border-radius: 6px;
+            margin: 2px;
         }}
-
         QScrollBar::handle:vertical:hover {{
             background-color: {button_hover};
+        }}
+        QScrollBar::handle:vertical:pressed {{
+            background-color: {accent_primary};
+        }}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+            height: 0px;
+        }}
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+            background: none;
         }}
 
         QScrollBar:horizontal {{
             background-color: {bg_secondary};
-            height: 14px;
-            border: 1px solid {border};
+            height: 12px;
+            border: none;
+            margin: 0px;
         }}
-
         QScrollBar::handle:horizontal {{
-            background-color: {button_normal};
-            min-width: 20px;
-            border-radius: 4px;
+            background-color: {border};
+            min-width: 30px;
+            border-radius: 6px;
+            margin: 2px;
         }}
-
         QScrollBar::handle:horizontal:hover {{
             background-color: {button_hover};
+        }}
+        QScrollBar::handle:horizontal:pressed {{
+            background-color: {accent_primary};
+        }}
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+            width: 0px;
+        }}
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+            background: none;
+        }}
+
+        QSplitter::handle:horizontal {{
+            background-color: {border};
+            width: 4px;
+        }}
+        QSplitter::handle:horizontal:hover {{
+            background-color: {accent_primary};
+        }}
+        QSplitter::handle:vertical {{
+            background-color: {border};
+            height: 4px;
+        }}
+        QSplitter::handle:vertical:hover {{
+            background-color: {accent_primary};
         }}
         """
 
@@ -2069,7 +2109,13 @@ class AppSettings:
             "remember_dialog_positions": True,
             "show_creation_tips": True,
             "validate_before_creation": True,
-             # Debug settings
+             # Pin warning settings
+            "pin_warn_popup": True,
+            "pin_warn_log": True,
+            # Rename notification settings
+            "rename_notify_popup": True,
+            "rename_notify_log": True,
+            # Debug settings
             "debug_mode": False,
             "debug_level": "INFO",
             "debug_categories": ["IMG_LOADING", "TABLE_POPULATION", "BUTTON_ACTIONS"]
@@ -3346,12 +3392,22 @@ class SettingsDialog(QDialog): #vers 15
     def _create_color_picker_tab(self): #vers 7
         """Create color picker and theme editor tab - Final layout with logical flow"""
         tab = QWidget()
-        main_layout = QHBoxLayout(tab)
+        _outer = QVBoxLayout(tab)          # VBox so tab fills its container
+        _outer.setContentsMargins(0, 0, 0, 0)
+        _outer.setSpacing(0)
+        main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        main_splitter.setChildrenCollapsible(False)
+        from PyQt6.QtWidgets import QSizePolicy as _SP
+        main_splitter.setSizePolicy(_SP.Policy.Expanding, _SP.Policy.Expanding)
+        _outer.addWidget(main_splitter, 1)  # stretch=1: splitter fills all space
+        main_layout = main_splitter
 
         # ========== LEFT PANEL ==========
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
-        left_panel.setMaximumWidth(350)
+        left_layout.setContentsMargins(4, 4, 4, 4)
+        left_panel.setMinimumWidth(220)
+        left_panel.setMaximumWidth(420)   # slightly wider cap
 
         # Screen Color Picker Group
         picker_group = QGroupBox("Color Picker")
@@ -3728,13 +3784,37 @@ class SettingsDialog(QDialog): #vers 15
 
     # = RIGHT PANEL
         right_panel = QWidget()
+        right_panel.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
         right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(4, 4, 4, 4)
 
         # Theme Selector
         theme_selector_layout = QHBoxLayout()
         theme_selector_layout.addWidget(QLabel(""))
 
-        self.instant_apply_check = QCheckBox("Apply Theme")
+        self.instant_apply_check = QCheckBox("✓ Apply Theme")
+        self.instant_apply_check.setChecked(True)
+        self.instant_apply_check.setStyleSheet("""
+            QCheckBox {
+                font-weight: bold;
+                font-size: 11px;
+                padding: 3px 8px;
+                border: 2px solid palette(highlight);
+                border-radius: 4px;
+                color: palette(highlighted-text);
+                background: palette(highlight);
+                spacing: 4px;
+            }
+            QCheckBox:unchecked {
+                background: palette(button);
+                color: palette(button-text);
+                border: 2px solid palette(mid);
+            }
+            QCheckBox::indicator { width: 0; height: 0; }
+        """)
         theme_selector_layout.addWidget(self.instant_apply_check)
 
         self.theme_selector_combo = QComboBox()
@@ -3757,12 +3837,21 @@ class SettingsDialog(QDialog): #vers 15
 
         # Scrollable Color Editors - MAIN CONTENT
         scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidgetResizable(True)   # MUST be True — widget grows with space
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
 
         scroll_widget = QWidget()
+        scroll_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred,
+        )
         scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_layout.setSpacing(2)
+        scroll_layout.setContentsMargins(2, 2, 2, 2)
+        scroll_layout.setSpacing(1)
 
         # Create color editors
         self.color_editors = {}
@@ -3777,9 +3866,9 @@ class SettingsDialog(QDialog): #vers 15
             self.color_editors[color_key] = editor
             scroll_layout.addWidget(editor)
 
-        scroll_layout.addStretch()
+        # No addStretch() here — scroll_widget Expanding policy handles it
         scroll_area.setWidget(scroll_widget)
-        right_layout.addWidget(scroll_area)
+        right_layout.addWidget(scroll_area, 1)  # stretch=1 so it fills available space
 
         # GLOBAL THEME SLIDERS - MOVED TO RIGHT PANEL BOTTOM (above Theme Actions)
         global_sliders_group = QGroupBox("Global Theme Sliders")
@@ -3847,7 +3936,7 @@ class SettingsDialog(QDialog): #vers 15
         right_layout.addWidget(global_sliders_group)
 
         # THEME ACTIONS GROUP - AT BOTTOM OF RIGHT PANEL
-        theme_layout = QHBoxLayout(self)
+        theme_layout = QHBoxLayout()  # was QHBoxLayout(self) which corrupted dialog layout
         theme_actions_group = QGroupBox("Theme Actions")
 
         # Use horizontal layout instead of vertical
@@ -3874,8 +3963,14 @@ class SettingsDialog(QDialog): #vers 15
         right_layout.addWidget(theme_actions_group)
 
         # Add panels to main layout
-        main_layout.addWidget(left_panel)
-        main_layout.addWidget(right_panel, 1)
+        from PyQt6.QtWidgets import QSizePolicy as _SP2
+        left_panel.setSizePolicy(_SP2.Policy.Preferred, _SP2.Policy.Expanding)
+        right_panel.setSizePolicy(_SP2.Policy.Expanding, _SP2.Policy.Expanding)
+        main_splitter.addWidget(left_panel)
+        main_splitter.addWidget(right_panel)
+        main_splitter.setStretchFactor(0, 0)   # left: fixed width
+        main_splitter.setStretchFactor(1, 1)   # right: takes ALL remaining space
+        main_splitter.setSizes([280, 9999])    # set immediately, no timer needed
 
         # IMPORTANT: Connect sliders AFTER all widgets are created
         self.global_hue_slider.valueChanged.connect(self._on_global_hue_changed)
@@ -4685,15 +4780,17 @@ class SettingsDialog(QDialog): #vers 15
 
         # IMG Files panel
         img_files_tab = self._create_button_panel_editor("img_files", [
-            ("Open", "open"),
-            ("Close", "close"),
-            ("Close All", "close_all"),
-            ("Rebuild", "rebuild"),
-            ("Save Entry", "save_entry"),
-            ("Rebuild All", "rebuild_all"),
-            ("Merge", "merge"),
-            ("Split", "split"),
-            ("Convert", "convert")
+            ("Open",         "open"),
+            ("Hybrid Load",  "hybrid_load"),
+            ("Scan Folder",  "scan_folder"),
+            ("Close",        "close"),
+            ("Close All",    "close_all"),
+            ("Rebuild",      "rebuild"),
+            ("Save Entry",   "save_entry"),
+            ("Rebuild All",  "rebuild_all"),
+            ("Merge",        "merge"),
+            ("Split",        "split"),
+            ("Convert",      "convert")
         ])
         self.button_panels_tabs.addTab(img_files_tab, "IMG Files Buttons")
 
@@ -5666,6 +5763,20 @@ Ready for operations..."""
         mode_map = {"both": 0, "icons": 1, "text": 2}
         self.button_display_combo.setCurrentIndex(mode_map.get(current_mode, 0))
 
+        # Tab content mode
+        try:
+            tab_mode_row = QHBoxLayout()
+            tab_mode_row.addWidget(QLabel("Tab content:"))
+            self.tab_content_mode_combo = QComboBox()
+            self.tab_content_mode_combo.addItems(["Icon + Text", "Icon Only", "Text Only"])
+            tab_mode_rev = {"both": 0, "icon": 1, "text": 2}
+            _tab_mode = self.app_settings.current_settings.get("tab_content_mode", "both")
+            self.tab_content_mode_combo.setCurrentIndex(tab_mode_rev.get(_tab_mode, 0))
+            tab_mode_row.addWidget(self.tab_content_mode_combo)
+            tab_mode_row.addStretch()
+        except Exception:
+            self.tab_content_mode_combo = None
+
         button_display_layout.addWidget(self.button_display_combo)
 
         hint_label = QLabel("Controls how toolbar buttons are displayed")
@@ -5714,6 +5825,42 @@ Ready for operations..."""
         interface_layout.addWidget(self.use_svg_icons_check)
 
         layout.addWidget(interface_group)
+
+        # Pin Warnings
+        pin_warn_group = QGroupBox("Pinned Entry Warnings")
+        pin_warn_layout = QVBoxLayout(pin_warn_group)
+
+        self.pin_warn_popup_check = QCheckBox("Show popup when a pinned entry is protected")
+        self.pin_warn_popup_check.setChecked(
+            self.app_settings.current_settings.get("pin_warn_popup", True))
+        pin_warn_layout.addWidget(self.pin_warn_popup_check)
+
+        self.pin_warn_log_check = QCheckBox("Log pin protection messages to activity log")
+        self.pin_warn_log_check.setChecked(
+            self.app_settings.current_settings.get("pin_warn_log", True))
+        pin_warn_layout.addWidget(self.pin_warn_log_check)
+
+        pin_hint = QLabel("Applies to: remove, rename, replace, move, import.")
+        pin_hint.setStyleSheet("color: #888; font-style: italic;")
+        pin_warn_layout.addWidget(pin_hint)
+
+        layout.addWidget(pin_warn_group)
+
+        # Rename Notifications
+        rename_notify_group = QGroupBox("Rename Notifications")
+        rename_notify_layout = QVBoxLayout(rename_notify_group)
+
+        self.rename_notify_popup_check = QCheckBox("Show popup on successful rename")
+        self.rename_notify_popup_check.setChecked(
+            self.app_settings.current_settings.get("rename_notify_popup", True))
+        rename_notify_layout.addWidget(self.rename_notify_popup_check)
+
+        self.rename_notify_log_check = QCheckBox("Log rename to activity log")
+        self.rename_notify_log_check.setChecked(
+            self.app_settings.current_settings.get("rename_notify_log", True))
+        rename_notify_layout.addWidget(self.rename_notify_log_check)
+
+        layout.addWidget(rename_notify_group)
         layout.addStretch()
 
         return widget
@@ -6934,28 +7081,63 @@ Ready for operations..."""
 
     # ===== THEME MANAGEMENT =====
 
-    def _on_theme_changed(self, theme_name): #vers 2
-        """Handle theme selection change"""
+    def _on_theme_changed(self, theme_name): #vers 3
+        """Handle theme selection change — applies live to entire app when checked."""
         theme_key = None
         for key, data in self.app_settings.themes.items():
             if data.get("name", key) == theme_name:
                 theme_key = key
                 break
 
-        if theme_key:
-            self._load_theme_colors(theme_key)
+        if not theme_key:
+            return
 
-            # Apply instantly if checkbox is enabled (copied from _apply_demo_theme)
-            if hasattr(self, 'instant_apply_check') and self.instant_apply_check.isChecked():
-                # Update settings temporarily
-                self.app_settings.current_settings["theme"] = theme_key
+        self._load_theme_colors(theme_key)
 
-                # Get and apply stylesheet
+        if hasattr(self, 'instant_apply_check') and self.instant_apply_check.isChecked():
+            # Persist the choice
+            self.app_settings.current_settings["theme"] = theme_key
+
+            # Apply full stylesheet to the app
+            try:
+                from PyQt6.QtWidgets import QApplication
+                stylesheet = self.app_settings.get_stylesheet()
+                QApplication.instance().setStyleSheet(stylesheet)
+            except Exception:
+                pass
+
+            # Apply to this dialog too
+            try:
                 stylesheet = self.app_settings.get_stylesheet()
                 self.setStyleSheet(stylesheet)
+            except Exception:
+                pass
 
-                # Emit signal to parent
-                self.themeChanged.emit(theme_key)
+            # Refresh IMG Factory-specific widgets (taskbar, table, icons)
+            try:
+                mw = self.parent()
+                if mw is None:
+                    # Non-modal — find main window via QApplication
+                    from PyQt6.QtWidgets import QApplication
+                    for w in QApplication.topLevelWidgets():
+                        if hasattr(w, 'app_settings') and hasattr(w, 'gui_layout'):
+                            mw = w
+                            break
+                if mw and hasattr(mw, 'app_settings'):
+                    colors = mw.app_settings.get_theme_colors() or {}
+                    icon_color = colors.get('text_primary', '#cccccc')
+                    if hasattr(mw, 'gui_layout'):
+                        if hasattr(mw.gui_layout, 'refresh_icons'):
+                            mw.gui_layout.refresh_icons(icon_color)
+                        if hasattr(mw.gui_layout, 'apply_table_theme'):
+                            mw.gui_layout.apply_table_theme()
+                    if hasattr(mw, 'tool_taskbar'):
+                        mw.tool_taskbar.apply_theme(colors)
+            except Exception:
+                pass
+
+            # Emit signal
+            self.themeChanged.emit(theme_key)
 
     def _load_theme_colors(self, theme_key): #vers 1
         """Load colors for selected theme into editors"""
@@ -7135,6 +7317,12 @@ Ready for operations..."""
             mode_map = {0: "both", 1: "icons", 2: "text"}
             settings["button_display_mode"] = mode_map.get(mode_index, "both")
 
+        # Tab content mode
+        if hasattr(self, 'tab_content_mode_combo') and self.tab_content_mode_combo:
+            tab_map = {0: "both", 1: "icon", 2: "text"}
+            settings["tab_content_mode"] = tab_map.get(
+                self.tab_content_mode_combo.currentIndex(), "both")
+
         # Window controls
         if hasattr(self, 'custom_gadgets_check'):
             settings["use_custom_gadgets"] = self.custom_gadgets_check.isChecked()
@@ -7150,6 +7338,14 @@ Ready for operations..."""
             settings["use_svg_icons"] = self.use_svg_icons_check.isChecked()
 
         # Debug settings
+        if hasattr(self, 'pin_warn_popup_check'):
+            settings["pin_warn_popup"] = self.pin_warn_popup_check.isChecked()
+        if hasattr(self, 'pin_warn_log_check'):
+            settings["pin_warn_log"] = self.pin_warn_log_check.isChecked()
+        if hasattr(self, 'rename_notify_popup_check'):
+            settings["rename_notify_popup"] = self.rename_notify_popup_check.isChecked()
+        if hasattr(self, 'rename_notify_log_check'):
+            settings["rename_notify_log"] = self.rename_notify_log_check.isChecked()
         if hasattr(self, 'debug_enabled_check'):
             settings["debug_mode"] = self.debug_enabled_check.isChecked()
         if hasattr(self, 'debug_level_combo'):
@@ -8025,3 +8221,6 @@ if __name__ == "__main__":
         print("Settings applied")
 
     sys.exit(0)
+
+    def _debug_current_img(self, *a, **kw): pass
+    def _test_debug_output(self, *a, **kw): pass
