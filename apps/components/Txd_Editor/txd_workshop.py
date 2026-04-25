@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#this belongs in components/Txd_Editor/ txd_workshop.py - Version: 56
+#this belongs in components/Txd_Editor/ txd_workshop.py - Version: 14
 # X-Seti - October10 2025 - Img Factory 1.5 - TXD Workshop Header Update
 
 """
@@ -24,8 +24,6 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QRect, QByteArray
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QImage, QPainter, QPen, QBrush, QColor, QCursor
 from PyQt6.QtSvg import QSvgRenderer
 
-# Fallback to standalone depends folder
-from apps.gui.tool_menu_mixin import ToolMenuMixin
 from apps.methods.txd_versions import ( detect_txd_version, get_platform_name, get_game_from_version, get_version_capabilities, get_platform_capabilities, is_mipmap_supported, is_bumpmap_supported, validate_txd_format, TXDPlatform, detect_platform_from_data)
 
 from apps.methods.txd_versions import (detect_txd_version, get_version_string, get_platform_name, get_platform_capabilities, TXDPlatform, TXDVersion)
@@ -35,6 +33,7 @@ from apps.methods.txd_context_menu import setup_txd_context_menu
 
 
 from apps.debug.debug_functions import img_debugger
+from apps.gui.tool_menu_mixin import ToolMenuMixin
 
 try:
     from PIL import Image
@@ -434,6 +433,24 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
     workshop_closed = pyqtSignal()
     window_closed = pyqtSignal()
 
+    def _get_ui_color(self, key): #vers 1
+        """Return theme-aware QColor. No hardcoded colors."""
+        from PyQt6.QtGui import QColor
+        try:
+            app_settings = getattr(self, 'app_settings', None) or \
+                getattr(getattr(self, 'main_window', None), 'app_settings', None)
+            if app_settings and hasattr(app_settings, 'get_ui_color'):
+                return app_settings.get_ui_color(key)
+        except Exception:
+            pass
+        pal = self.palette()
+        if key == 'viewport_bg':   return pal.color(pal.ColorRole.Base)
+        if key == 'viewport_text': return pal.color(pal.ColorRole.PlaceholderText)
+        if key == 'border':        return pal.color(pal.ColorRole.Mid)
+        if key == 'accent_primary':return pal.color(pal.ColorRole.Highlight)
+        return pal.color(pal.ColorRole.WindowText)
+
+
     def __init__(self, parent=None, main_window=None): #vers 10
         """Initialize TXD Workshop"""
         if DEBUG_STANDALONE and main_window is None:
@@ -483,7 +500,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         self._invert_alpha = False
         self.zoom_level = 1.0
         self.pan_offset = QPoint(0, 0)
-        self.background_color = self._get_ui_color('viewport_bg')
+        #self.background_color = self._get_ui_color('viewport_bg')
         self.background_mode = 'solid'
         self.placeholder_text = "No texture"
         self.setMinimumSize(200, 200)
@@ -1975,6 +1992,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Colors
+
         normal_color = self._get_ui_color('viewport_text'); normal_color.setAlpha(150)
         hover_color = self._get_ui_color('accent_primary'); hover_color.setAlpha(200)
 
@@ -2997,10 +3015,10 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         #    Background swatches at the end (checkerboard, black, grey, white)
         _btn('checkerboard_icon', 'Checkerboard',
              lambda: self.preview_widget.set_checkerboard_background())
+
         for color, tip, qcol in [
-            ('black',   'Black Background',  QColor(0,   0,   0  )),
-            ('#2a2a2a', 'Gray Background',   self._get_ui_color('viewport_bg')),
-            ('white',   'White Background',  self._get_ui_color('viewport_bg')),
+            ('black',  'Black Background',  self._get_ui_color('viewport_bg')),
+            ('white',  'White Background',  self._get_ui_color('viewport_bg')),
         ]:
             b = QPushButton()
             b.setFixedSize(B, B)
@@ -9047,12 +9065,12 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             )
 
             if ok and format_choice:
-                # STUB: format conversion not yet implemented
+                # TODO: implement actual DXT/format conversion
                 QMessageBox.information(
                     self,
                     "Format Conversion",
-                    f"Converting from {current_format} to {format_choice}\n\n"
-                    "This feature is under development."
+                    f"Converting {current_format} → {format_choice} not yet available.\n"
+                    "Export the texture, convert externally, then re-import."
                 )
 
         except Exception as e:
@@ -12361,7 +12379,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
     #    TXD method aliases and stubs (Build 131)                      
     def _export_all_textures(self, *a, **kw): return self.export_all_textures(*a, **kw)
     def _export_selected_texture(self, *a, **kw): return self.export_selected_texture(*a, **kw)
-    def _open_txd_file(self, *a, **kw): pass  # STUB: delegate to _open_file
+    def _open_txd_file(self, *a, **kw): return self._open_file(*a, **kw)  #vers 2
     def copy_texture(self, *a, **kw): return self._copy_texture(*a, **kw)
     def delete_texture(self, *a, **kw): return self._delete_texture(*a, **kw)
     def duplicate_texture(self, *a, **kw): return self._duplicate_texture(*a, **kw)
@@ -14271,7 +14289,14 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             return
 
         # Check if modified
-        # STUB: check modification state before close
+        # Check modified flag if present
+        tab_widget = self.txd_tabs.widget(index)
+        if tab_widget and getattr(tab_widget, 'is_modified', False):
+            from PyQt6.QtWidgets import QMessageBox
+            r = QMessageBox.question(self, 'Unsaved Changes',
+                'This tab has unsaved changes. Close anyway?')
+            if r != QMessageBox.StandardButton.Yes:
+                return
 
         self.txd_tabs.removeTab(index)
 
@@ -14281,8 +14306,10 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         if index < 0:
             return
 
-        # STUB: load texture list for this tab
         tab_name = self.txd_tabs.tabText(index)
+        tab_widget = self.txd_tabs.widget(index)
+        if tab_widget and hasattr(tab_widget, 'refresh'):
+            tab_widget.refresh()
 
         if self.main_window and hasattr(self.main_window, 'log_message'):
             self.main_window.log_message(f"Switched to tab: {tab_name}")
@@ -15069,7 +15096,12 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         if self.main_window and hasattr(self.main_window, 'log_message'):
             self.main_window.log_message("Hotkeys updated")
 
-        # STUB: save hotkeys to config
+        # Save hotkeys to app_settings if available
+        try:
+            if hasattr(self, 'app_settings') and self.app_settings:
+                self.app_settings.set('hotkeys', getattr(self, '_hotkey_map', {}))
+        except Exception:
+            pass
 
         if close:
             dialog.accept()
