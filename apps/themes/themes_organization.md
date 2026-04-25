@@ -4,20 +4,20 @@
 
 ```
 themes/
-├── img_factory.json          # Professional IMG Factory theme
-├── img_factory_dark.json     # Dark mode version
-├── lcars.json                # Star Trek LCARS theme
-├── amiga_workbench.json      # Classic Amiga 3.1
-├── amiga_mui.json            # Amiga MUI theme
-├── deep_purple.json          # Purple space theme
-├── tea_and_toast.json        # Cozy morning theme
-├── matrix.json               # Matrix green theme
-├── knight_rider.json         # KITT dashboard theme
-├── classic_dark.json         # Professional dark
-├── light_professional.json   # Clean light theme
-└── exported_themes/          # User-exported themes
-    ├── custom_theme1.json
-    └── my_theme.json
+├   img_factory.json          # Professional IMG Factory theme
+├   img_factory_dark.json     # Dark mode version
+├   lcars.json                # Star Trek LCARS theme
+├   amiga_workbench.json      # Classic Amiga 3.1
+├   amiga_mui.json            # Amiga MUI theme
+├   deep_purple.json          # Purple space theme
+├   tea_and_toast.json        # Cozy morning theme
+├   matrix.json               # Matrix green theme
+├   knight_rider.json         # KITT dashboard theme
+├   classic_dark.json         # Professional dark
+├   light_professional.json   # Clean light theme
+└   exported_themes/          # User-exported themes
+    ├   custom_theme1.json
+    └   my_theme.json
 ```
 
 ## Theme File Format:
@@ -55,7 +55,15 @@ Each theme file follows this structure:
         "action_export": "#4caf50",
         "action_remove": "#f44336", 
         "action_update": "#ff9800",
-        "action_convert": "#9c27b0"
+        "action_convert": "#9c27b0",
+    "window_bg": "#2b2b2b",
+    "window_text": "#ffffff",
+    "base": "#2b2b2b",
+    "alternate_base": "#3c3c3c",
+    "tooltip_bg": "#3c3c3c",
+    "tooltip_text": "#ffffff",
+    "placeholder_text": "#aaaaaa",
+    "disabled_text": "#777777"
     }
 }
 ```
