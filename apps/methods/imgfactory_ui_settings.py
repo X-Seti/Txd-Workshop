@@ -1,4 +1,4 @@
-#this belongs in methods/imgfactory_ui_settings.py - Version: 4
+#this belongs in methods/imgfactory_ui_settings.py - Version: 6
 # X-Seti - February04 2026 - IMG Factory 1.6 - IMG Factory Settings Dialog
 
 """
@@ -16,6 +16,8 @@ from PyQt6.QtGui import QFont
 from apps.methods.img_factory_settings import IMGFactorySettings
 
 ##Methods list -
+# apply_compact_buttons
+# get_collapse_threshold
 # show_imgfactory_settings_dialog
 
 ##Classes -
@@ -127,6 +129,19 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         self.remember_pos_cb.setChecked(self.img_settings.get("remember_window_position", True))
         window_layout.addWidget(self.remember_pos_cb)
 
+        # Welcome / intro screen
+        import os, json as _j
+        _pref = os.path.expanduser('~/.config/imgfactory/welcome_prefs.json')
+        _show_welcome = True
+        try: _show_welcome = _j.load(open(_pref)).get('show_on_startup', True)
+        except Exception: pass
+        self.show_welcome_cb = QCheckBox("Show welcome / intro screen on startup")
+        self.show_welcome_cb.setChecked(_show_welcome)
+        self.show_welcome_cb.setToolTip(
+            "Show the IMG Factory intro screen when the application starts.\n"
+            "Can also be toggled from the intro screen itself.")
+        window_layout.addWidget(self.show_welcome_cb)
+
         window_group.setLayout(window_layout)
         layout.addWidget(window_group)
 
@@ -157,7 +172,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
             h.addStretch()
             return h
 
-        # ── Button Layout ──────────────────────────────────────────────────
+        #    Button Layout                                                   
         btn_grp = QGroupBox("Button Layout")
         btn_lay = QVBoxLayout(btn_grp); btn_lay.setSpacing(4)
         lh, self.h_spacing_spin = spin('h_spacing_spin', 'H spacing:', 0, 50,
@@ -167,7 +182,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         btn_lay.addLayout(row(lh, self.h_spacing_spin, lv, self.v_spacing_spin))
         layout.addWidget(btn_grp)
 
-        # ── Font Settings ──────────────────────────────────────────────────
+        #    Font Settings                                                   
         fnt_grp = QGroupBox("Font Settings")
         fnt_lay = QVBoxLayout(fnt_grp); fnt_lay.setSpacing(4)
 
@@ -204,7 +219,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         self.use_custom_font_cb.toggled.connect(toggle_font_controls)
         layout.addWidget(fnt_grp)
 
-        # ── Tab Settings ───────────────────────────────────────────────────
+        #    Tab Settings                                                    
         tab_grp = QGroupBox("Tab Settings")
         tab_lay = QVBoxLayout(tab_grp); tab_lay.setSpacing(4)
 
@@ -234,7 +249,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
                               ltp, self.tab_position_combo))
         layout.addWidget(tab_grp)
 
-        # ── Workshop Panel Collapse ─────────────────────────────────────────
+        #    Workshop Panel Collapse                                          
         col_grp = QGroupBox("Workshop Panel Collapse")
         col_lay = QVBoxLayout(col_grp); col_lay.setSpacing(4)
         desc = QLabel("Side panels switch from text+icon to icon-only\n"
@@ -467,7 +482,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         self.show_menu_bar_check.setChecked(self.img_settings.get("show_menu_bar", True))
         appearance_layout.addWidget(self.show_menu_bar_check)
 
-        # ── IMG Factory menu orientation ─────────────────────────────────
+        #    IMG Factory menu orientation                                  
         from PyQt6.QtWidgets import QGroupBox as _GB, QVBoxLayout as _VL, QRadioButton as _RB
 
         img_orient_group = _GB("IMG Factory — Menu Orientation")
@@ -634,7 +649,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         app_s = getattr(self.main_window, 'app_settings', None)
         cs = app_s.current_settings if app_s else {}
 
-        # ── Button Size & Spacing ──────────────────────────────────────────
+        #    Button Size & Spacing                                           
         size_grp = QGroupBox("Button Size && Spacing")
         size_lay = QVBoxLayout(size_grp); size_lay.setSpacing(6)
 
@@ -656,7 +671,7 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
             'rp_h_spacing', 0, 30, cs.get('button_spacing_horizontal', 6)))
         layout.addWidget(size_grp)
 
-        # ── Button Display Mode ────────────────────────────────────────────
+        #    Button Display Mode                                             
         mode_grp = QGroupBox("Button Display Mode")
         mode_lay = QVBoxLayout(mode_grp); mode_lay.setSpacing(4)
         cur_mode = cs.get('button_display_mode', 'text_only')
@@ -764,6 +779,18 @@ class IMGFactorySettingsDialog(QDialog): #vers 2
         self.img_settings.set("preferred_ide_name", self.ide_combo.currentText())
         self.img_settings.set("remember_window_size", self.remember_size_cb.isChecked())
         self.img_settings.set("remember_window_position", self.remember_pos_cb.isChecked())
+        # Save welcome screen preference to its own JSON (shared with welcome_screen.py)
+        try:
+            import os, json as _j
+            _pref = os.path.expanduser('~/.config/imgfactory/welcome_prefs.json')
+            _data = {}
+            try: _data = _j.load(open(_pref))
+            except Exception: pass
+            _data['show_on_startup'] = self.show_welcome_cb.isChecked()
+            os.makedirs(os.path.dirname(_pref), exist_ok=True)
+            _j.dump(_data, open(_pref, 'w'), indent=2)
+        except Exception:
+            pass
 
         # Interface tab
         self.img_settings.set("button_horizontal_spacing", self.h_spacing_spin.value())
@@ -995,3 +1022,33 @@ def show_imgfactory_settings_dialog(main_window): #vers 2
             "Error",
             f"Failed to open IMG Factory Settings: {str(e)}"
         )
+
+
+def apply_compact_buttons(buttons_meta: list, available_width: int,
+                           compact_threshold: int = 260): #vers 1
+    """Global adaptive button helper — icon-only when width < compact_threshold.
+    buttons_meta: list of (widget, full_label) tuples.
+    compact_threshold: pixel width below which text is hidden (default 260).
+    Called from resizeEvent or splitter moves in any workshop."""
+    compact = available_width < compact_threshold
+    for btn, label in buttons_meta:
+        if btn is None:
+            continue
+        btn.setText("" if compact else label)
+        btn.setMinimumWidth(26 if compact else 52)
+        btn.setMaximumWidth(26 if compact else 16777215)
+
+
+def apply_compact_buttons(buttons_meta: list, available_width: int,
+                           compact_threshold: int = 260): #vers 1
+    """Global adaptive button helper — icon-only when width < compact_threshold.
+    buttons_meta: list of (widget, full_label) tuples.
+    compact_threshold: pixel width below which text is hidden (default 260).
+    Called from resizeEvent or splitter moves in any workshop."""
+    compact = available_width < compact_threshold
+    for btn, label in buttons_meta:
+        if btn is None:
+            continue
+        btn.setText("" if compact else label)
+        btn.setMinimumWidth(26 if compact else 52)
+        btn.setMaximumWidth(26 if compact else 16777215)

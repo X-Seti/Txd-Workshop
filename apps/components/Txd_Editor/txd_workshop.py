@@ -584,11 +584,11 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             print(App_name + " initialized")
 
 
-    # ── ToolMenuMixin implementation ─────────────────────────────────────
+    #    ToolMenuMixin implementation                                      
 
     def get_menu_title(self) -> str: #vers 1
         """Return menu label for imgfactory menu bar."""
-        return "TXD Workshop"
+        return "TXD"
 
     def _build_menus_into_qmenu(self, parent_menu): #vers 1
         """Populate parent_menu with TXD Workshop actions for imgfactory injection."""
@@ -2240,9 +2240,26 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             self.size_grip.move(self.width() - 16, self.height() - 16)
         self._update_transform_text_panel_visibility()
 
-    def _on_splitter_moved(self, pos, index): #vers 1
-        """Called when main splitter is dragged."""
+    def _on_splitter_moved(self, pos, index): #vers 2
+        """Called when main splitter is dragged — reflow both icon bars."""
         self._update_transform_text_panel_visibility()
+        # Reflow left icon panel
+        ip = getattr(self, '_transform_icon_panel_ref', None)
+        if ip and ip.isVisible():
+            pw = ip.width()
+            if getattr(self, '_icon_panel_forced_cols', None) is None:
+                new_cols = max(1, pw // 26)
+                if new_cols != getattr(self, '_icon_panel_last_cols', 0):
+                    self._icon_panel_last_cols = new_cols
+                    self._place_icon_grid(new_cols)
+        # Reflow right preview controls
+        frame = getattr(self, '_preview_ctrl_frame', None)
+        if frame and frame.isVisible():
+            pw = frame.width()
+            B  = getattr(self, '_preview_ctrl_B', 28)
+            new_cols = max(2, pw // (B + 2))
+            if new_cols != getattr(self, '_preview_ctrl_last_cols', 0):
+                self._reflow_preview_controls(new_cols)
 
     def _update_transform_text_panel_visibility(self): #vers 3
         """Toggle between text+icon panel (wide) and icon-only strip (narrow).
@@ -2260,35 +2277,14 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             if ip: ip.setVisible(False)
             return
 
-        # Auto mode: measure the right panel width directly
-        rp = getattr(self, '_right_panel_ref', None)
-        if rp:
-            ref_w = rp.width()
-        else:
-            # fallback: walk up from text panel to find splitter child
-            splitter = getattr(self, '_main_splitter', None)
-            ref_w = self.width()
-            if splitter and tp:
-                w = tp
-                while w and w.parent() is not splitter:
-                    w = w.parent() if hasattr(w, 'parent') else None
-                if w:
-                    ref_w = w.width()
-
-        # Text panel (160px wide) + icon panel (46px) + some margin = needs ~220px
-        try:
-            from apps.methods.imgfactory_ui_settings import get_collapse_threshold
-            threshold = get_collapse_threshold(getattr(self, 'main_window', None))
-        except Exception:
-            threshold = 550
-        wide = ref_w >= threshold
-        if tp: tp.setVisible(wide)
-        if ip: ip.setVisible(not wide)
-
-        # Also sync the button_display_mode so bottom buttons collapse too
-        new_mode = 'both' if wide else 'icons'
-        if getattr(self, 'button_display_mode', 'both') != new_mode:
-            self.button_display_mode = new_mode
+        # Auto mode: icon panel always visible (horizontal compact strip).
+        # Text panel (wide labeled buttons) only shown if explicitly requested.
+        # Always keep icon panel on — it fills the available width.
+        if ip: ip.setVisible(True)
+        if tp: tp.setVisible(False)
+        # Keep button_display_mode as icons
+        if getattr(self, 'button_display_mode', 'icons') != 'icons':
+            self.button_display_mode = 'icons'
             self._update_all_buttons()
 
 
@@ -2509,9 +2505,9 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Header row with search button
         hdr_row = QHBoxLayout()
-        header = QLabel("TXD Files")
-        header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        hdr_row.addWidget(header)
+        self._txd_list_header = QLabel("TXD Files")
+        self._txd_list_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        hdr_row.addWidget(self._txd_list_header)
         hdr_row.addStretch()
         self.txd_search_btn = QPushButton()
         self.txd_search_btn.setFixedSize(24, 24)
@@ -2548,11 +2544,11 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         layout.setSpacing(4)
 
         # Header label
-        header = QLabel("Textures")
-        header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        layout.addWidget(header)
+        self._textures_header = QLabel("Textures")
+        self._textures_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        layout.addWidget(self._textures_header)
 
-        # ── Mini toolbar: 4 icon buttons — only shown when docked ─────────
+        #    Mini toolbar: 4 icon buttons — only shown when docked          
         # (toolbar has these too; in docked mode the toolbar is hidden)
         icon_color = self._get_icon_color()
         self._middle_btn_row = QFrame()
@@ -2601,7 +2597,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         # Only show mini toolbar when docked (standalone toolbar already has these)
         self._middle_btn_row.setVisible(self.is_docked and not self.standalone_mode)
 
-        # ── Texture table ─────────────────────────────────────────────────
+        #    Texture table                                                  
         self.texture_table = QTableWidget()
         self.texture_table.setColumnCount(2)
         self.texture_table.setHorizontalHeaderLabels(["Preview", "Details"])
@@ -2630,32 +2626,57 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         self._right_panel_ref = panel   # used by visibility method
         has_bumpmap = False
         main_layout = QVBoxLayout(panel)
-        #main_layout.setContentsMargins(5, 5, 5, 5)
-        top_layout = QHBoxLayout()
+        main_layout.setContentsMargins(4, 4, 4, 4)
+        main_layout.setSpacing(3)
 
-        # Transform panels — icon strip (narrow) and text+icon panel (wide)
-        # Icon panel: always built, shown only when space is tight
+        #    Toolbar row (full width above preview)                         
+        # Icon panel spans the full panel width — fills with as many columns
+        # as fit, wrapping to more rows only when narrow.
         transform_icon_panel = self._create_transform_icon_panel()
         self._transform_icon_panel_ref = transform_icon_panel
-        top_layout.setSpacing(2)
-        top_layout.addWidget(transform_icon_panel)
-        transform_icon_panel.setVisible(False)   # hidden until splitter makes it narrow
+        transform_icon_panel.setVisible(True)
+        # Restore saved orientation
+        try:
+            if self.main_window and hasattr(self.main_window, 'app_settings'):
+                saved_vert = self.main_window.app_settings.get_setting(
+                    'txd_icon_panel_vertical', False)
+                self._icon_panel_vertical = bool(saved_vert)
+            else:
+                self._icon_panel_vertical = False
+        except Exception:
+            self._icon_panel_vertical = False
+        main_layout.addWidget(transform_icon_panel, stretch=0)
 
-        # Text+icon panel: shown by default
+        # Text panel — wide labeled buttons, hidden by default
         transform_text_panel = self._create_transform_text_panel()
         self._transform_text_panel_ref = transform_text_panel
-        top_layout.setSpacing(2)
-        top_layout.addWidget(transform_text_panel)
-        transform_text_panel.setVisible(True)
+        transform_text_panel.setVisible(False)
+        main_layout.addWidget(transform_text_panel, stretch=0)
 
-        # Preview area (center)
+        #    Preview row (preview + controls side by side)                  
+        preview_row = QHBoxLayout()
+        preview_row.setSpacing(3)
         self.preview_widget = ZoomablePreview(self)
-        top_layout.addWidget(self.preview_widget, stretch=2)
+        preview_row.addWidget(self.preview_widget, stretch=1)
+        # Wrap preview controls in a DockableToolbar (right side, vertical)
+        from apps.components.Txd_Editor.dockable_toolbar import DockableToolbar as _DT
+        preview_controls_frame = self._create_preview_controls()
+        preview_toolbar = _DT(panel, settings_key='right_toolbar')
+        preview_toolbar.set_content(preview_controls_frame)
+        preview_toolbar.set_dock_position('right')
+        preview_toolbar.dock_position_changed.connect(
+            lambda pos: None)
+        preview_toolbar.reflow_requested.connect(self._reflow_right_toolbar)
+        self._preview_toolbar = preview_toolbar
+        preview_row.addWidget(preview_toolbar, stretch=0)
+        main_layout.addLayout(preview_row, stretch=1)
 
-        # Preview controls (right side, vertical)
-        preview_controls = self._create_preview_controls()
-        top_layout.addWidget(preview_controls, stretch=0)
-        main_layout.addLayout(top_layout, stretch=1)
+        # Register extra snap panels so toolbars can dock to preview edges
+        # (set after info_group is created below — done in _finish_panel_snap_targets)
+
+        # Load saved toolbar layouts (deferred so layout is settled)
+        from PyQt6.QtCore import QTimer as _QTimer
+        _QTimer.singleShot(100, self._load_toolbar_layouts)
 
         # Information group below
         info_group = QGroupBox("")
@@ -2894,44 +2915,41 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             info_layout.addLayout(mipbump_layout)
 
         main_layout.addWidget(info_group, stretch=0)
+
+        # Register preview_widget and info_group as extra snap targets
+        transform_icon_panel._extra_panels = [self.preview_widget, info_group]
+        preview_toolbar._extra_panels      = [self.preview_widget, info_group]
         return panel
 
 
-    def _create_preview_controls(self): #vers 2
-        """Create preview control buttons - vertical layout on right"""
-        from PyQt6.QtCore import QSize, QByteArray
-        from PyQt6.QtGui import QIcon, QPixmap, QPainter
-        try:
-            from PyQt6.QtSvg import QSvgRenderer as _QSvgRenderer
-        except ImportError:
-            _QSvgRenderer = None
-        try:
-            from apps.methods.imgfactory_svg_icons import SVGIconFactory as _SVGIconFactory
-        except ImportError:
-            _SVGIconFactory = None
-
-        # 2-column grid — all buttons at 28px so 14 buttons = 7 rows × ~30px = ~210px
+    def _create_preview_controls(self): #vers 3
+        """Create preview control buttons — all icons theme-aware via icon_factory."""
         B  = 28   # button size
         IC = 16   # icon size
+        icon_color = self._get_icon_color()
 
         controls_frame = QFrame()
         controls_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        controls_frame.setMaximumWidth(B * 2 + 10)  # exactly 2 cols wide
+        controls_frame.setMinimumWidth(B + 6)
+        controls_frame.setMaximumWidth(16777215)
 
         from PyQt6.QtWidgets import QGridLayout
         grid = QGridLayout(controls_frame)
         grid.setContentsMargins(2, 4, 2, 4)
         grid.setSpacing(2)
 
-        _all_btns = []   # (btn, row, col) — filled below
+        _all_btns = []
 
-        def _btn(icon_fn, tip, slot, style=None, attr=None):
+        def _btn(icon_method, tip, slot, style=None, attr=None):
+            """Create button using icon_factory for theme-aware icons."""
             b = QPushButton()
             b.setFixedSize(B, B)
             b.setToolTip(tip)
             try:
-                b.setIcon(getattr(self, icon_fn)())
-                b.setIconSize(QSize(IC, IC))
+                fn = getattr(self.icon_factory, icon_method, None)
+                if fn:
+                    b.setIcon(fn(color=icon_color))
+                    b.setIconSize(QSize(IC, IC))
             except Exception:
                 b.setText(tip[:2])
             if style:
@@ -2942,13 +2960,15 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             _all_btns.append(b)
             return b
 
-        def _tool_btn(icon_fn, tip, slot):
+        def _tool_btn(icon_method, tip, slot):
+            """Create tool button using icon_factory for theme-aware icons."""
             b = QPushButton()
             b.setFixedSize(B, B)
             b.setToolTip(tip)
             try:
-                if _SVGIconFactory:
-                    b.setIcon(getattr(_SVGIconFactory, icon_fn)(IC))
+                fn = getattr(self.icon_factory, icon_method, None)
+                if fn:
+                    b.setIcon(fn(color=icon_color))
                     b.setIconSize(QSize(IC, IC))
             except Exception:
                 b.setText(tip[:2])
@@ -2956,20 +2976,27 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             _all_btns.append(b)
             return b
 
-        # ── View controls ─────────────────────────────────────────────────
-        _btn('_create_zoom_in_icon',        'Zoom In',            self.preview_widget.zoom_in)
-        _btn('_create_zoom_out_icon',       'Zoom Out',           self.preview_widget.zoom_out)
-        _btn('_create_reset_icon',          'Reset View',         self.preview_widget.reset_view)
-        _btn('_create_fit_icon',            'Fit to Window',      self.preview_widget.fit_to_window)
-        _btn('_create_arrow_up_icon',       'Pan Up',             lambda: self._pan_preview(0, -20))
-        _btn('_create_arrow_down_icon',     'Pan Down',           lambda: self._pan_preview(0, 20))
-        _btn('_create_arrow_left_icon',     'Pan Left',           lambda: self._pan_preview(-20, 0))
-        _btn('_create_arrow_right_icon',    'Pan Right',          lambda: self._pan_preview(20, 0))
-        _btn('_create_color_picker_icon',   'Pick Background',    self._pick_background_color)
-        _btn('_create_resize_icon',         'Resize Texture',     self._resize_texture, attr='resize_texture_btn')
-        _btn('_create_checkerboard_icon',   'Checkerboard',       lambda: self.preview_widget.set_checkerboard_background())
+        #    View controls: zoom, pan, pick, resize                        
+        _btn('zoom_in_icon',        'Zoom In',            self.preview_widget.zoom_in)
+        _btn('zoom_out_icon',       'Zoom Out',           self.preview_widget.zoom_out)
+        _btn('reset_icon',          'Reset View',         self.preview_widget.reset_view)
+        _btn('fit_icon',            'Fit to Window',      self.preview_widget.fit_to_window)
+        _btn('arrow_up_icon',       'Pan Up',             lambda: self._pan_preview(0, -20))
+        _btn('arrow_down_icon',     'Pan Down',           lambda: self._pan_preview(0, 20))
+        _btn('arrow_left_icon',     'Pan Left',           lambda: self._pan_preview(-20, 0))
+        _btn('arrow_right_icon',    'Pan Right',          lambda: self._pan_preview(20, 0))
+        _btn('color_picker_icon',   'Pick Background',    self._pick_background_color)
+        _btn('resize_icon',         'Resize Texture',     self._resize_texture, attr='resize_texture_btn')
 
-        # Background colour swatches — colour-coded, no icon needed
+        #    Image tool buttons                                             
+        _tool_btn('knob_icon',           'Colour Adjustments…', self._open_colour_adjust)
+        _tool_btn('seamless_icon',       'Seamless Tool…',      self._open_seamless_tool)
+        _tool_btn('snow_icon',           'Snow Effect…',        self._open_snow_tool)
+        _tool_btn('alpha_coverage_icon', 'Alpha Coverage…',     self._open_alpha_coverage)
+
+        #    Background swatches at the end (checkerboard, black, grey, white)
+        _btn('checkerboard_icon', 'Checkerboard',
+             lambda: self.preview_widget.set_checkerboard_background())
         for color, tip, qcol in [
             ('black',   'Black Background',  QColor(0,   0,   0  )),
             ('#2a2a2a', 'Gray Background',   QColor(42,  42,  42 )),
@@ -2982,36 +3009,68 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             b.clicked.connect(lambda c=False, q=qcol: self.preview_widget.set_background_color(q))
             _all_btns.append(b)
 
-        # ── Tool buttons (separator row then 2×2) ─────────────────────────
-        sep_btn = QFrame()
-        sep_btn.setFrameShape(QFrame.Shape.HLine)
-        sep_btn.setMaximumHeight(2)
+        # Store — no separator needed
+        self._preview_ctrl_view_btns = _all_btns   # all in one flat list
+        self._preview_ctrl_tool_btns = []           # merged into view_btns
+        self._preview_ctrl_sep       = None         # no separator
+        self._preview_ctrl_grid      = grid
+        self._preview_ctrl_frame     = controls_frame
+        self._preview_ctrl_B         = B
 
-        _tool_btn('knob_icon',           'Colour Adjustments…', self._open_colour_adjust)
-        _tool_btn('seamless_icon',       'Seamless Tool…',      self._open_seamless_tool)
-        _tool_btn('snow_icon',           'Snow Effect…',        self._open_snow_tool)
-        _tool_btn('alpha_coverage_icon', 'Alpha Coverage…',     self._open_alpha_coverage)
-
-        # Place all buttons into 2-column grid
-        n_cols = 2
-        # First 14 view/BG buttons, then separator spanning 2 cols, then 4 tool buttons
-        view_btns  = _all_btns[:14]
-        tool_btns  = _all_btns[14:]
-        row = 0
-        for idx, b in enumerate(view_btns):
-            grid.addWidget(b, idx // n_cols, idx % n_cols)
-            row = idx // n_cols
-        row += 1
-        grid.addWidget(sep_btn, row, 0, 1, 2)
-        row += 1
-        for idx, b in enumerate(tool_btns):
-            grid.addWidget(b, row + idx // n_cols, idx % n_cols)
+        # Initial placement — 1 column (docked right by default)
+        self._reflow_preview_controls(1)
 
         # Keep tile state stubs for _set_tiled_preview compat
         self._tile_n    = 1
         self._tile_btns = {}
 
         return controls_frame
+
+    def _reflow_preview_controls(self, n_cols=None): #vers 1
+        """Reflow preview control buttons into as many columns as fit."""
+        grid      = getattr(self, '_preview_ctrl_grid', None)
+        view_btns = getattr(self, '_preview_ctrl_view_btns', [])
+        tool_btns = getattr(self, '_preview_ctrl_tool_btns', [])
+        sep_btn   = getattr(self, '_preview_ctrl_sep', None)
+        frame     = getattr(self, '_preview_ctrl_frame', None)
+        B         = getattr(self, '_preview_ctrl_B', 28)
+        if grid is None or not view_btns:
+            return
+
+        if n_cols is None:
+            pw = frame.width() if frame else 0
+            if pw < B * 2:
+                pw = B * 2 + 6
+            n_cols = max(1, pw // (B + 2))
+
+        # Clear grid
+        for i in range(grid.count() - 1, -1, -1):
+            item = grid.itemAt(i)
+            if item and item.widget():
+                grid.removeWidget(item.widget())
+
+        # All buttons in one flat list — no separator
+        all_btns = view_btns + tool_btns
+        for idx, b in enumerate(all_btns):
+            grid.addWidget(b, idx // n_cols, idx % n_cols)
+
+        self._preview_ctrl_last_cols = n_cols
+
+        # Constrain frame width to match column count
+        if frame:
+            margin = 6   # grid margins (2px each side × 2 + 2px breathing)
+            if n_cols == 1:
+                # Narrow: exactly one column wide
+                w = B + margin
+                frame.setMinimumWidth(w)
+                frame.setMaximumWidth(w)
+            elif n_cols >= len(view_btns) + len(tool_btns):
+                # Single row: let width be natural
+                frame.setMinimumWidth(B + margin)
+                frame.setMaximumWidth(16777215)
+            else:
+                frame.setMinimumWidth(B + margin)
+                frame.setMaximumWidth(16777215)
 
 
     def _update_toolbar_for_docking_state(self): #vers 1
@@ -4023,7 +4082,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         menu.addSeparator()
 
-        # Icon display mode submenu # TODO icon only system is missing.
+        # Icon display mode submenu — auto-compact handled by resizeEvent
         display_menu = menu.addMenu("Platform Display")
 
         icons_text_action = display_menu.addAction("Icons & Text")
@@ -4130,13 +4189,23 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         menu.exec(self.mapToGlobal(pos))
 
 
-    def _get_icon_color(self): #vers 2
-        """Get icon colour from current theme — returns text_primary."""
-        if APPSETTINGS_AVAILABLE and self.app_settings:
-            colors = self.app_settings.get_theme_colors()
-            return colors.get('text_primary', '#000000')
-        return '#000000'
+    def _get_icon_color(self): #vers 3
+        """Get icon colour from current theme — returns text_primary.
+        Falls back to main_window app_settings if own settings not loaded."""
+        as_ = (self.app_settings
+               or getattr(getattr(self, 'main_window', None), 'app_settings', None))
+        if as_:
+            try:
+                colors = as_.get_theme_colors() or {}
+                return colors.get('text_primary', '#cccccc')
+            except Exception:
+                pass
+        return '#cccccc'
 
+    # STUB: dock_btn/tearoff_btn icons do not yet update on theme change
+    # Remaining: dock_btn, tearoff_btn, colour swatch buttons, some info-panel
+    # labels/combos, and any icons created via _svg_to_icon() rather than
+    # icon_factory. Address in a future pass.
     def _refresh_icons(self): #vers 1
         """Refresh all button icons after theme change."""
         SVGIconFactory.clear_cache()
@@ -4144,41 +4213,58 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         SVGIconFactory.set_theme_color(c)
 
         _icon_map = [
-            # Toolbar buttons
-            ('open_btn',       'open_icon'),
-            ('save_btn',       'save_icon'),
-            ('saveall_btn',    'saveas_icon'),
-            ('export_all_btn', 'package_icon'),
-            ('undo_btn',       'undo_icon'),
-            ('info_btn',       'info_icon'),
-            ('settings_btn',   'settings_icon'),
-            ('minimize_btn',   'minimize_icon'),
-            ('maximize_btn',   'maximize_icon'),
-            ('close_btn',      'close_icon'),
-            ('open_img_btn',   'folder_icon'),
-            # Middle panel mini toolbar (docked mode)
-            ('open_txd_btn',   'open_icon'),
-            ('save_txd_btn',   'save_icon'),
-            ('export_all_btn', 'package_icon'),
-            ('undo_btn',       'undo_icon'),
-            # Transform / edit panel
-            ('flip_vert_btn',      'flip_vert_icon'),
-            ('flip_horz_btn',      'flip_horz_icon'),
-            ('rotate_cw_btn',      'rotate_cw_icon'),
-            ('rotate_ccw_btn',     'rotate_ccw_icon'),
-            ('analyze_btn',        'analyze_icon'),
-            ('copy_btn',           'copy_icon'),
-            ('paste_btn',          'paste_icon'),
-            ('create_surface_btn', 'add_icon'),
-            ('delete_surface_btn', 'remove_icon'),
-            ('import_btn',         'import_icon'),
-            ('export_btn',         'export_icon'),
-            ('switch_btn',         'flip_vert_icon'),
-            ('convert_btn',        'convert_icon'),
-            ('properties_btn',     'settings_icon'),
-            ('invert_btn',         'build_icon'),
-            ('gen_alpha_btn',      'paint_icon'),
-            ('props_btn',          'properties_icon'),
+            # Title bar / toolbar
+            ('open_btn',            'open_icon'),
+            ('save_btn',            'save_icon'),
+            ('saveall_btn',         'saveas_icon'),
+            ('export_all_btn',      'package_icon'),
+            ('undo_btn',            'undo_icon'),
+            ('info_btn',            'info_icon'),
+            ('settings_btn',        'settings_icon'),
+            ('minimize_btn',        'minimize_icon'),
+            ('maximize_btn',        'maximize_icon'),
+            ('close_btn',           'close_icon'),
+            ('open_img_btn',        'folder_icon'),
+            ('txd_search_btn',      'search_icon'),
+            # Docked mode mini toolbar
+            ('open_txd_btn',        'open_icon'),
+            ('save_txd_btn',        'save_icon'),
+            # Left transform toolbar (icon grid)
+            ('flip_vert_btn',       'flip_vert_icon'),
+            ('flip_horz_btn',       'flip_horz_icon'),
+            ('rotate_cw_btn',       'rotate_cw_icon'),
+            ('rotate_ccw_btn',      'rotate_ccw_icon'),
+            ('copy_btn',            'copy_icon'),
+            ('paste_btn',           'paste_icon'),
+            ('create_texture_btn',  'add_icon'),
+            ('delete_texture_btn',  'delete_icon'),
+            ('duplicate_texture_btn','duplicate_icon'),
+            ('paint_btn',           'paint_icon'),
+            ('check_dff_btn',       'analyze_icon'),
+            ('build_from_dff_btn',  'build_icon'),
+            ('filters_btn',         'filter_icon'),
+            ('switch_btn',          'flip_vert_icon'),
+            ('invert_btn',          'build_icon'),
+            ('gen_alpha_btn',       'paint_icon'),
+            ('props_btn',           'properties_icon'),
+            # Info panel buttons
+            ('import_btn',          'import_icon'),
+            ('export_btn',          'export_icon'),
+            ('convert_btn',         'convert_icon'),
+            ('properties_btn',      'settings_icon'),
+            ('analyze_btn',         'analyze_icon'),
+            # Mipmap row
+            ('create_mipmaps_btn',  'add_icon'),
+            ('remove_mipmaps_btn',  'delete_icon'),
+            ('show_mipmaps_btn',    'view_icon'),
+            ('compress_btn',        'compress_icon'),
+            ('uncompress_btn',      'uncompress_icon'),
+            ('upscale_btn',         'upscale_icon'),
+            # Bumpmap row
+            ('import_bumpmap_btn',  'import_icon'),
+            ('export_bumpmap_btn',  'export_icon'),
+            # Right preview bar
+            ('resize_texture_btn',  'resize_icon'),
         ]
         for attr, method in _icon_map:
             btn = getattr(self, attr, None)
@@ -4194,6 +4280,34 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
                     btn.setIcon(fn())
                 except Exception:
                     pass
+
+        # Refresh right preview bar icons on theme change
+        try:
+            c2 = self._get_icon_color()
+            tip_to_icon = {
+                'Zoom In': 'zoom_in_icon', 'Zoom Out': 'zoom_out_icon',
+                'Reset View': 'reset_icon', 'Fit to Window': 'fit_icon',
+                'Pan Up': 'arrow_up_icon', 'Pan Down': 'arrow_down_icon',
+                'Pan Left': 'arrow_left_icon', 'Pan Right': 'arrow_right_icon',
+                'Pick Background': 'color_picker_icon',
+                'Resize Texture': 'resize_icon',
+                'Checkerboard': 'checkerboard_icon',
+                'Colour Adjustments…': 'knob_icon',
+                'Seamless Tool…': 'seamless_icon',
+                'Snow Effect…': 'snow_icon',
+                'Alpha Coverage…': 'alpha_coverage_icon',
+            }
+            for btn in getattr(self, '_preview_ctrl_view_btns', []):
+                fn_name = tip_to_icon.get(btn.toolTip())
+                if fn_name:
+                    fn = getattr(self.icon_factory, fn_name, None)
+                    if fn:
+                        try:
+                            btn.setIcon(fn(color=c2))
+                        except Exception:
+                            pass
+        except Exception:
+            pass
 
         # Update middle btn row visibility (may have changed docked state)
         if hasattr(self, '_middle_btn_row'):
@@ -4232,45 +4346,26 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         print("======================\n")
 
 
-    def _apply_theme(self): #vers 3
-        """Apply theme from app_settings"""
+    def _apply_theme(self): #vers 5
+        """Apply global app theme — uses QApplication stylesheet set by app_settings."""
         try:
-            # Use self.app_settings first, then fall back to main_window
+            mw = getattr(self, 'main_window', None)
             app_settings = None
             if hasattr(self, 'app_settings') and self.app_settings:
                 app_settings = self.app_settings
-            elif self.main_window and hasattr(self.main_window, 'app_settings'):
-                app_settings = self.main_window.app_settings
+            elif mw and hasattr(mw, 'app_settings'):
+                app_settings = mw.app_settings
 
-            if app_settings:
-                # Get current theme
-                theme_name = app_settings.current_settings.get('theme', 'App_Factory')
-                stylesheet = app_settings.get_stylesheet()
-
-                # Apply stylesheet
-                self.setStyleSheet(stylesheet)
-
-                # Force update
-                self.update()
-
-                img_debugger.success(f"Theme applied: {theme_name}")
-                if self.main_window and hasattr(self.main_window, 'log_message'):
-                    self.main_window.log_message(f"Theme applied: {theme_name}")
-            else:
-                # Fallback dark theme
-                self.setStyleSheet("""
-                    QWidget {
-                        background-color: #2b2b2b;
-                        color: #e0e0e0;
-                    }
-                    QListWidget, QTableWidget, QTextEdit {
-                        background-color: #1e1e1e;
-                        border: 1px solid #3a3a3a;
-                    }
-                """)
-                img_debugger.warning("No app_settings found, using fallback theme")
+            if app_settings and hasattr(app_settings, 'get_stylesheet'):
+                # Apply to QApplication so all widgets inherit it
+                from PyQt6.QtWidgets import QApplication
+                ss = app_settings.get_stylesheet()
+                if ss:
+                    QApplication.instance().setStyleSheet(ss)
+            # Clear any widget-level override so we inherit from QApplication
+            self.setStyleSheet("")
         except Exception as e:
-            img_debugger.error(f"Theme application error: {e}")
+            print(f"Theme application error: {e}")
 
 
     def _apply_settings(self, dialog): #vers 5
@@ -4506,8 +4601,9 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
     def _setup_status_indicators(self): #vers 5
         """Setup status indicators with texture info and visible resize button"""
         self.status_frame = QFrame()
+        self.status_frame.setFixedHeight(24)
         self.status_layout = QHBoxLayout(self.status_frame)
-        self.status_layout.setContentsMargins(5, 2, 5, 2)
+        self.status_layout.setContentsMargins(5, 0, 5, 0)
 
         self.status_textures = QLabel("Textures: 0")
         self.status_layout.addWidget(self.status_textures)
@@ -5432,7 +5528,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         preview_label.setStyleSheet("border: 1px solid #3a3a3a; background: #2a2a2a;")
 
         if has_bumpmap:
-            # TODO: Display actual bumpmap preview
+            # STUB: bumpmap preview not yet implemented
             preview_label.setText("Bumpmap data present\n(Preview coming soon)")
         else:
             preview_label.setText("No bumpmap data")
@@ -5575,10 +5671,15 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             QMessageBox.critical(self, "Error", f"Batch export failed: {str(e)}")
 
 
-    def _update_status_indicators(self): #vers 1
+    def _update_status_indicators(self): #vers 2
         """Update status indicators"""
         if hasattr(self, 'status_textures'):
             self.status_textures.setText(f"Textures: {len(self.texture_list)}")
+        # Update middle panel header with texture count
+        hdr = getattr(self, '_textures_header', None)
+        if hdr:
+            n = len(self.texture_list)
+            hdr.setText(f"Textures  ({n})" if n else "Textures")
 
         if hasattr(self, 'status_selected'):
             if self.selected_texture:
@@ -5805,6 +5906,9 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
                     item.setToolTip(f"{entry.name}\nSize: {size_kb:.1f} KB")
                     self.txd_list_widget.addItem(item)
 
+            hdr = getattr(self, '_txd_list_header', None)
+            if hdr:
+                hdr.setText(f"TXD Files  ({len(self.txd_list)})")
             if self.main_window and hasattr(self.main_window, 'log_message'):
                 self.main_window.log_message(f"📋 Found {len(self.txd_list)} TXD files")
         except Exception as e:
@@ -7936,73 +8040,228 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             QMessageBox.critical(self, "Error", f"Export failed: {str(e)}")
 
 
-    def export_all_textures(self): #vers 2
-        """Export all textures from the current TXD as PNG files."""
+    #    IFF ILBM writer (24-bit true colour)                             
+    @staticmethod
+    def _rgba_to_iff_ilbm(rgba: bytes, w: int, h: int) -> bytes: #vers 1
+        """Write RGBA pixel data as 24-bit IFF ILBM (Amiga true colour).
+        Compatible with PPaint, DPaint 5, and any IFF-aware tool."""
+        import struct
+
+        def _iff_chunk(tag: str, data: bytes) -> bytes:
+            hdr = tag.encode('ascii') + struct.pack('>I', len(data))
+            return hdr + data + (b'\x00' if len(data) % 2 else b'')
+
+        n_planes = 24   # 8R + 8G + 8B bitplanes
+        row_bytes = (w + 15) // 16 * 2   # row width in bytes, word-aligned
+
+        # BMHD — bitmap header
+        bmhd = struct.pack('>HHhhBBBBHBBhh',
+            w, h,          # width, height
+            0, 0,          # x, y origin
+            n_planes,      # planes
+            0,             # masking (none)
+            0,             # compression (none — uncompressed)
+            0,             # pad
+            0,             # transparent colour
+            1, 1,          # x/y aspect
+            w, h)          # page width/height
+
+        # CAMG — Amiga viewport mode (0 = normal, no HAM/EHB)
+        camg = struct.pack('>I', 0x0000)
+
+        # BODY — interleaved bitplanes: for each scan row, 24 separate plane rows
+        # 8 planes for Red, 8 for Green, 8 for Blue (plane 0 = LSB)
+        body = bytearray()
+        for y in range(h):
+            # One row_bytes buffer per bitplane
+            planes_r = [bytearray(row_bytes) for _ in range(8)]
+            planes_g = [bytearray(row_bytes) for _ in range(8)]
+            planes_b = [bytearray(row_bytes) for _ in range(8)]
+            for x in range(w):
+                idx = (y * w + x) * 4
+                r, g, b = rgba[idx], rgba[idx+1], rgba[idx+2]
+                bx  = x // 8
+                bit = 0x80 >> (x % 8)
+                for p in range(8):
+                    if r & (1 << p): planes_r[p][bx] |= bit
+                    if g & (1 << p): planes_g[p][bx] |= bit
+                    if b & (1 << p): planes_b[p][bx] |= bit
+            # Write planes in order: R0..R7, G0..G7, B0..B7
+            for p in range(8): body += bytes(planes_r[p])
+            for p in range(8): body += bytes(planes_g[p])
+            for p in range(8): body += bytes(planes_b[p])
+
+        ilbm = (b'ILBM'
+                + _iff_chunk('BMHD', bmhd)
+                + _iff_chunk('CAMG', camg)
+                + _iff_chunk('BODY', bytes(body)))
+        return b'FORM' + struct.pack('>I', len(ilbm)) + ilbm
+
+    def _save_texture_format(self, rgba: bytes, w: int, h: int,
+                              path: str, fmt: str): #vers 1
+        """Save RGBA pixel data to path in the requested format.
+        fmt: 'PNG' | 'IFF' | 'TGA' | 'DDS' | 'BMP'"""
+        fmt = fmt.upper()
+        if fmt == 'IFF':
+            data = self._rgba_to_iff_ilbm(rgba, w, h)
+            with open(path, 'wb') as f:
+                f.write(data)
+        elif fmt == 'DDS':
+            # DDS: minimal DXT1 header — write as uncompressed RGBA8888
+            import struct
+            DDSD_CAPS=1; DDSD_HEIGHT=2; DDSD_WIDTH=4
+            DDSD_PIXELFORMAT=0x1000; DDSD_LINEARSIZE=0x80000
+            DDPF_ALPHAPIXELS=1; DDPF_RGB=0x40
+            flags = DDSD_CAPS|DDSD_HEIGHT|DDSD_WIDTH|DDSD_PIXELFORMAT|DDSD_LINEARSIZE
+            pitch = w * 4
+            pf = struct.pack('<II4sIIIIII',
+                32, DDPF_ALPHAPIXELS|DDPF_RGB, b'    ',
+                32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000, 0)
+            caps = struct.pack('<IIII', 0x1000, 0, 0, 0)  # DDSCAPS_TEXTURE
+            hdr = (b'DDS ' + struct.pack('<I', 124) +
+                   struct.pack('<IIIII', flags, h, w, pitch, 1) +
+                   b'\x00'*44 + pf + caps)
+            # Convert RGBA→BGRA for DDS
+            bgra = bytearray(len(rgba))
+            for i in range(0, len(rgba), 4):
+                bgra[i]=rgba[i+2]; bgra[i+1]=rgba[i+1]
+                bgra[i+2]=rgba[i]; bgra[i+3]=rgba[i+3]
+            with open(path,'wb') as f:
+                f.write(hdr); f.write(bytes(bgra))
+        elif fmt == 'TGA':
+            import struct
+            # TGA: uncompressed BGRA
+            hdr = struct.pack('<BBBHHBHHHHBB',
+                0, 0, 2, 0, 0, 0, 0, 0, w, h, 32, 8)
+            bgra = bytearray(len(rgba))
+            for i in range(0, len(rgba), 4):
+                bgra[i]=rgba[i+2]; bgra[i+1]=rgba[i+1]
+                bgra[i+2]=rgba[i]; bgra[i+3]=rgba[i+3]
+            with open(path,'wb') as f:
+                f.write(hdr); f.write(bytes(bgra))
+        else:
+            # PNG / BMP — use QImage
+            from PyQt6.QtGui import QImage
+            img = QImage(rgba, w, h, w*4, QImage.Format.Format_RGBA8888)
+            ext = 'BMP' if fmt == 'BMP' else 'PNG'
+            img.save(path, ext)
+
+    def export_all_textures(self): #vers 3
+        """Export all textures from the current TXD in chosen format(s)."""
         if not self.texture_list:
             QMessageBox.warning(self, "No Textures", "No textures loaded to export.")
             return
 
+        from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
+            QLabel, QCheckBox, QDialogButtonBox, QGroupBox, QFileDialog)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Export All Textures")
+        dlg.setMinimumWidth(340)
+        lay = QVBoxLayout(dlg)
+
+        lay.addWidget(QLabel(
+            f"Export {len(self.texture_list)} textures from current TXD:"))
+
+        fmt_box = QGroupBox("Output format(s)")
+        fmt_lay = QVBoxLayout(fmt_box)
+        fmt_checks = {}
+        for fmt, default in [('IFF / ILBM (Amiga)', True),
+                              ('PNG',                True),
+                              ('TGA',                False),
+                              ('DDS',                False),
+                              ('BMP',                False)]:
+            cb = QCheckBox(fmt)
+            cb.setChecked(default)
+            fmt_lay.addWidget(cb)
+            fmt_checks[fmt] = cb
+        lay.addWidget(fmt_box)
+
+        btns = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(dlg.accept)
+        btns.rejected.connect(dlg.reject)
+        lay.addWidget(btns)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        # Build list of selected (key→ext) pairs
+        fmt_map = {'IFF / ILBM (Amiga)': 'IFF', 'PNG': 'PNG',
+                   'TGA': 'TGA', 'DDS': 'DDS', 'BMP': 'BMP'}
+        ext_map  = {'IFF':'iff','PNG':'png','TGA':'tga','DDS':'dds','BMP':'bmp'}
+        selected = [fmt_map[k] for k, cb in fmt_checks.items() if cb.isChecked()]
+        if not selected:
+            QMessageBox.warning(self, "No Format", "Select at least one format.")
+            return
+
         output_dir = QFileDialog.getExistingDirectory(
-            self, "Select Folder for PNG Export")
+            self, "Select Export Folder")
         if not output_dir:
             return
 
-        exported = 0
-        skipped = 0
+        from PyQt6.QtWidgets import QProgressDialog, QApplication
+        from PyQt6.QtCore import Qt as _Qt
+        prog = QProgressDialog(
+            f"Exporting {len(self.texture_list)} textures…",
+            "Cancel", 0, len(self.texture_list), self)
+        prog.setWindowModality(_Qt.WindowModality.ApplicationModal)
+        prog.show()
+
+        exported = skipped = 0
         errors = []
 
-        try:
-            for i, texture in enumerate(self.texture_list):
-                name = texture.get('name', f'texture_{i}').strip('\x00')
-                if not name:
-                    name = f'texture_{i}'
+        for i, texture in enumerate(self.texture_list):
+            prog.setValue(i)
+            QApplication.processEvents()
+            if prog.wasCanceled():
+                break
 
-                # Resolve RGBA data — try rgba_data first, then mip levels
-                rgba_data = texture.get('rgba_data')
-                width  = texture.get('width', 0)
-                height = texture.get('height', 0)
+            name = (texture.get('name') or f'texture_{i}').strip('\x00').strip()
+            if not name:
+                name = f'texture_{i}'
 
-                if not rgba_data or width == 0 or height == 0:
-                    # Try first mip level
-                    levels = texture.get('mip_levels', [])
-                    if levels:
-                        lv = levels[0]
-                        rgba_data = lv.get('rgba_data')
-                        width  = lv.get('width', width)
-                        height = lv.get('height', height)
+            rgba_data = texture.get('rgba_data')
+            width  = texture.get('width', 0)
+            height = texture.get('height', 0)
+            if not rgba_data or width == 0 or height == 0:
+                levels = texture.get('mip_levels') or texture.get('mipmap_levels', [])
+                if levels:
+                    lv = levels[0]; rgba_data = lv.get('rgba_data')
+                    width  = lv.get('width', width)
+                    height = lv.get('height', height)
 
-                if not rgba_data or width == 0 or height == 0:
-                    skipped += 1
-                    continue
+            if not rgba_data or width == 0 or height == 0:
+                skipped += 1
+                continue
 
+            rgba_bytes = bytes(rgba_data)
+            for fmt in selected:
+                ext  = ext_map[fmt]
+                path = os.path.join(output_dir, f"{name}.{ext}")
                 try:
-                    out_path = os.path.join(output_dir, f"{name}.png")
-                    self._save_texture_png(rgba_data, width, height, out_path)
+                    self._save_texture_format(rgba_bytes, width, height, path, fmt)
                     exported += 1
                 except Exception as e:
-                    errors.append(f"{name}: {e}")
+                    errors.append(f"{name}.{ext}: {e}")
 
-            msg = f"Exported {exported} of {len(self.texture_list)} texture(s) to:\n{output_dir}"
-            if skipped:
-                msg += f"\n\nSkipped {skipped} (no decoded pixel data available)."
-            if errors:
-                msg += f"\n\nErrors ({len(errors)}):\n" + "\n".join(errors[:5])
+        prog.close()
 
-            if self.main_window and hasattr(self.main_window, 'log_message'):
-                self.main_window.log_message(
-                    f"TXD export: {exported} PNG(s) → {output_dir}"
-                    + (f" ({skipped} skipped)" if skipped else ""))
+        msg = (f"Exported {exported} file(s) to:\n{output_dir}"
+               f"\nFormats: {', '.join(selected)}")
+        if skipped:
+            msg += f"\nSkipped {skipped} (no pixel data)"
+        if errors:
+            msg += f"\nErrors ({len(errors)}):\n" + "\n".join(errors[:5])
 
-            if exported:
-                QMessageBox.information(self, "Export Complete", msg)
-            else:
-                QMessageBox.warning(self, "Nothing Exported",
-                    "No textures could be exported.\n"
-                    "The textures may not have decoded pixel data available.\n\n"
-                    "Try opening and viewing a texture first, then export.")
+        if self.main_window and hasattr(self.main_window, 'log_message'):
+            self.main_window.log_message(
+                f"TXD export: {exported} file(s) → {output_dir} "
+                f"[{', '.join(selected)}]"
+                + (f" ({skipped} skipped)" if skipped else ""))
 
-        except Exception as e:
-            QMessageBox.critical(self, "Export Failed", str(e))
+        QMessageBox.information(self, "Export Complete", msg)
 
 
     def _extract_alpha_channel(self, rgba_data): #vers 1
@@ -8788,7 +9047,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             )
 
             if ok and format_choice:
-                # TODO: Implement actual format conversion logic
+                # STUB: format conversion not yet implemented
                 QMessageBox.information(
                     self,
                     "Format Conversion",
@@ -10092,7 +10351,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             # Read 88-byte header
             platform_id, filter_mode, uv_addressing = struct.unpack('<I2B', txd_data[pos:pos+6])[:3]
 
-            # ── Xbox (platform_id == 5): delegate to Xbox parser ──────────────
+            #    Xbox (platform_id == 5): delegate to Xbox parser               
             if platform_id == 5:
                 try:
                     from apps.methods.txd_platform_xbox import parse_xbox_nativetex
@@ -10110,7 +10369,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
                 except Exception as _xe:
                     print(f"[Xbox TXD] Texture {index}: {_xe}")
                 return tex  # return empty rather than crash
-            # ── End Xbox ─────────────────────────────────────────────────────
+            #    End Xbox                                                      
 
             pos += 8  # Skip padding
 
@@ -11011,34 +11270,41 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         dialog.exec()
 
     #Left side vertical panel
-    def _create_transform_icon_panel(self): #vers 13
-        """2-column icon grid — auto-expands columns so all buttons fit vertically."""
-        self.transform_icon_panel = QFrame()
-        self.transform_icon_panel.setFrameStyle(QFrame.Shape.StyledPanel)
-
-        # Use a grid layout — buttons placed left-to-right, top-to-bottom in n_cols
-        outer = QVBoxLayout(self.transform_icon_panel)
-        outer.setContentsMargins(2, 4, 2, 4)
-        outer.setSpacing(0)
-
+    def _create_transform_icon_panel(self): #vers 14
+        """Dockable toolbar — grip handle + icon grid.
+        The toolbar can be dragged to float, snapped to any edge, collapsed."""
+        from apps.components.Txd_Editor.dockable_toolbar import DockableToolbar
         from PyQt6.QtWidgets import QGridLayout
-        grid = QGridLayout()
+
+        # Inner icon grid frame — grid is the direct layout, no outer VBox
+        # (the VBox+stretch was causing the frame to occupy its own full row
+        #  in the DockableToolbar's HBoxLayout)
+        icon_frame = QFrame()
+        icon_frame.setFrameStyle(QFrame.Shape.NoFrame)
+
+        grid = QGridLayout(icon_frame)
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setSpacing(2)
-        outer.addLayout(grid)
-        outer.addStretch()
 
-        # We will track all (btn, attr) pairs and place them after
-        self._icon_panel_grid = grid
-        self._icon_panel_buttons = []   # populated below; placed in _place_icon_grid()
+        self._icon_panel_grid    = grid
+        self._icon_panel_buttons = []
+        self._icon_frame         = icon_frame   # inner frame (content)
+
+        # Wrap in DockableToolbar
+        rp = getattr(self, '_right_panel_ref', None)
+        toolbar = DockableToolbar(rp or self, settings_key="left_toolbar")
+        toolbar.dock_position_changed.connect(self._on_toolbar_dock_changed)
+        toolbar.reflow_requested.connect(self._reflow_left_toolbar)
+        self.transform_icon_panel = toolbar   # outer dockable widget
+        self._toolbar_widget      = toolbar
 
         btn_height = 24   # compact when docked — kept as local for compat
         btn_width  = 34
         icon_size  = QSize(16, 16)
         spacer     = 0   # grid handles spacing
+        icon_color = self._get_icon_color()   # theme-aware colour
 
         def _add(btn):
-            """Register a button for grid placement."""
             self._icon_panel_buttons.append(btn)
             return btn
 
@@ -11051,7 +11317,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Flip Vertical
         self.flip_vert_btn = QPushButton()
-        self.flip_vert_btn.setIcon(self._create_flip_vert_icon())
+        self.flip_vert_btn.setIcon(self.icon_factory.flip_vert_icon(color=icon_color))
         self.flip_vert_btn.setIconSize(icon_size)
         self.flip_vert_btn.setFixedHeight(btn_height)
         self.flip_vert_btn.setMinimumWidth(btn_width)
@@ -11063,7 +11329,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Flip Horizontal
         self.flip_horz_btn = QPushButton()
-        self.flip_horz_btn.setIcon(self._create_flip_horz_icon())
+        self.flip_horz_btn.setIcon(self.icon_factory.flip_horz_icon(color=icon_color))
         self.flip_horz_btn.setIconSize(icon_size)
         self.flip_horz_btn.setFixedHeight(btn_height)
         self.flip_horz_btn.setMinimumWidth(btn_width)
@@ -11075,7 +11341,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Rotate Clockwise
         self.rotate_cw_btn = QPushButton()
-        self.rotate_cw_btn.setIcon(self._create_rotate_cw_icon())
+        self.rotate_cw_btn.setIcon(self.icon_factory.rotate_cw_icon(color=icon_color))
         self.rotate_cw_btn.setIconSize(icon_size)
         self.rotate_cw_btn.setFixedHeight(btn_height)
         self.rotate_cw_btn.setMinimumWidth(btn_width)
@@ -11087,7 +11353,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Rotate Counter-Clockwise
         self.rotate_ccw_btn = QPushButton()
-        self.rotate_ccw_btn.setIcon(self._create_rotate_ccw_icon())
+        self.rotate_ccw_btn.setIcon(self.icon_factory.rotate_ccw_icon(color=icon_color))
         self.rotate_ccw_btn.setIconSize(icon_size)
         self.rotate_ccw_btn.setFixedHeight(btn_height)
         self.rotate_ccw_btn.setMinimumWidth(btn_width)
@@ -11099,7 +11365,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Copy
         self.copy_btn = QPushButton()
-        self.copy_btn.setIcon(self._create_copy_icon())
+        self.copy_btn.setIcon(self.icon_factory.copy_icon(color=icon_color))
         self.copy_btn.setIconSize(icon_size)
         self.copy_btn.setFixedHeight(btn_height)
         self.copy_btn.setMinimumWidth(btn_width)
@@ -11111,7 +11377,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Paste
         self.paste_btn = QPushButton()
-        self.paste_btn.setIcon(self._create_paste_icon())
+        self.paste_btn.setIcon(self.icon_factory.paste_icon(color=icon_color))
         self.paste_btn.setIconSize(icon_size)
         self.paste_btn.setFixedHeight(btn_height)
         self.paste_btn.setMinimumWidth(btn_width)
@@ -11123,7 +11389,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Create
         self.create_texture_btn = QPushButton()
-        self.create_texture_btn.setIcon(self._create_create_icon())
+        self.create_texture_btn.setIcon(self.icon_factory.add_icon(color=icon_color))
         self.create_texture_btn.setIconSize(icon_size)
         self.create_texture_btn.setFixedHeight(btn_height)
         self.create_texture_btn.setMinimumWidth(btn_width)
@@ -11134,7 +11400,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Delete
         self.delete_texture_btn = QPushButton()
-        self.delete_texture_btn.setIcon(self._create_delete_icon())
+        self.delete_texture_btn.setIcon(self.icon_factory.delete_icon(color=icon_color))
         self.delete_texture_btn.setIconSize(icon_size)
         self.delete_texture_btn.setFixedHeight(btn_height)
         self.delete_texture_btn.setMinimumWidth(btn_width)
@@ -11146,7 +11412,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Duplicate
         self.duplicate_texture_btn = QPushButton()
-        self.duplicate_texture_btn.setIcon(self._create_duplicate_icon())
+        self.duplicate_texture_btn.setIcon(self.icon_factory.duplicate_icon(color=icon_color))
         self.duplicate_texture_btn.setIconSize(icon_size)
         self.duplicate_texture_btn.setFixedHeight(btn_height)
         self.duplicate_texture_btn.setMinimumWidth(btn_width)
@@ -11158,7 +11424,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Paint
         self.paint_btn = QPushButton()
-        self.paint_btn.setIcon(self._create_paint_icon())
+        self.paint_btn.setIcon(self.icon_factory.paint_icon(color=icon_color))
         self.paint_btn.setIconSize(icon_size)
         self.paint_btn.setFixedHeight(btn_height)
         self.paint_btn.setMinimumWidth(btn_width)
@@ -11170,7 +11436,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Check DFF
         self.check_dff_btn = QPushButton()
-        self.check_dff_btn.setIcon(self._create_check_icon())
+        self.check_dff_btn.setIcon(self.icon_factory.analyze_icon(color=icon_color))
         self.check_dff_btn.setIconSize(icon_size)
         self.check_dff_btn.setFixedHeight(btn_height)
         self.check_dff_btn.setMinimumWidth(btn_width)
@@ -11181,7 +11447,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Build from DFF
         self.build_from_dff_btn = QPushButton()
-        self.build_from_dff_btn.setIcon(self._create_build_icon())
+        self.build_from_dff_btn.setIcon(self.icon_factory.build_icon(color=icon_color))
         self.build_from_dff_btn.setIconSize(icon_size)
         self.build_from_dff_btn.setFixedHeight(btn_height)
         self.build_from_dff_btn.setMinimumWidth(btn_width)
@@ -11192,7 +11458,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Filters
         self.filters_btn = QPushButton()
-        self.filters_btn.setIcon(self._create_filter_icon())
+        self.filters_btn.setIcon(self.icon_factory.filter_icon(color=icon_color))
         self.filters_btn.setIconSize(icon_size)
         self.filters_btn.setFixedHeight(btn_height)
         self.filters_btn.setMinimumWidth(btn_width)
@@ -11204,7 +11470,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Switch
         self.switch_btn = QPushButton()
-        self.switch_btn.setIcon(self._create_flip_vert_icon())
+        self.switch_btn.setIcon(self.icon_factory.flip_vert_icon(color=icon_color))
         self.switch_btn.setIconSize(icon_size)
         self.switch_btn.setFixedHeight(btn_height)
         self.switch_btn.setMinimumWidth(btn_width)
@@ -11216,7 +11482,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Invert Alpha
         self.invert_btn = QPushButton()
-        self.invert_btn.setIcon(self.icon_factory.build_icon(color=self._get_icon_color()))
+        self.invert_btn.setIcon(self.icon_factory.build_icon(color=icon_color))
         self.invert_btn.setIconSize(icon_size)
         self.invert_btn.setFixedHeight(btn_height)
         self.invert_btn.setMinimumWidth(btn_width)
@@ -11229,7 +11495,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Generate Alpha
         self.gen_alpha_btn = QPushButton()
-        self.gen_alpha_btn.setIcon(self.icon_factory.paint_icon(color=self._get_icon_color()))
+        self.gen_alpha_btn.setIcon(self.icon_factory.paint_icon(color=icon_color))
         self.gen_alpha_btn.setIconSize(icon_size)
         self.gen_alpha_btn.setFixedHeight(btn_height)
         self.gen_alpha_btn.setMinimumWidth(btn_width)
@@ -11241,7 +11507,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
         # Properties
         self.props_btn = QPushButton()
-        self.props_btn.setIcon(self.icon_factory.properties_icon(color=self._get_icon_color()))
+        self.props_btn.setIcon(self.icon_factory.properties_icon(color=icon_color))
         self.props_btn.setIconSize(icon_size)
         self.props_btn.setFixedHeight(btn_height)
         self.props_btn.setMinimumWidth(btn_width)
@@ -11250,30 +11516,209 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         self.props_btn.setToolTip("Show texture properties")
         layout.addWidget(self.props_btn)
 
-        # Place buttons into the 2-column grid
+        # Place buttons into grid and attach to toolbar
         self._place_icon_grid()
-        return self.transform_icon_panel
+        toolbar.set_content(icon_frame)
 
-    def _place_icon_grid(self, n_cols=2): #vers 1
-        """Place registered icon buttons into the grid with n_cols columns.
-        Called after all buttons are registered. Also called on resize to reflow."""
-        grid = self._icon_panel_grid
-        btns = self._icon_panel_buttons
-        # Clear existing grid
-        for i in range(grid.count()-1, -1, -1):
+        # Event filter on icon_frame for resize reflow
+        from PyQt6.QtCore import QObject, QEvent
+        _ws = self
+        class _FrameFilter(QObject):
+            def eventFilter(self, obj, event):
+                if event.type() == QEvent.Type.Resize:
+                    # Skip if cols are forced (floating/single-row/single-col state)
+                    if getattr(_ws, '_icon_panel_forced_cols', None) is None:
+                        if not getattr(_ws, '_icon_panel_vertical', False):
+                            pw = obj.width()
+                            new_cols = max(1, pw // 26)
+                            if new_cols != getattr(_ws, '_icon_panel_last_cols', 0):
+                                _ws._icon_panel_last_cols = new_cols
+                                _ws._place_icon_grid(new_cols)
+                return False
+        self._icon_frame_filter = _FrameFilter(icon_frame)
+        icon_frame.installEventFilter(self._icon_frame_filter)
+
+        return toolbar
+
+    def _on_toolbar_dock_changed(self, pos: str): #vers 1
+        """Called when toolbar is docked/floated — update orientation state."""
+        from apps.components.Txd_Editor.dockable_toolbar import SNAP_LEFT, SNAP_RIGHT
+        is_vert = pos in (SNAP_LEFT, SNAP_RIGHT)
+        self._icon_panel_vertical = is_vert
+        self._place_icon_grid(1 if is_vert else None)
+
+    def _reflow_left_toolbar(self, pos: str): #vers 1
+        """Reflow left icon bar based on dock state.
+        Floating → single row (all icons in one row).
+        Docked top/bottom → fill panel width (auto cols).
+        Docked left/right → single column."""
+        from apps.components.Txd_Editor.dockable_toolbar import SNAP_LEFT, SNAP_RIGHT
+        n = len(getattr(self, '_icon_panel_buttons', []))
+        if pos == 'float':
+            self._place_icon_grid(n)       # single row
+        elif pos in (SNAP_LEFT, SNAP_RIGHT):
+            self._place_icon_grid(1)       # single column
+        else:
+            self._place_icon_grid(None)    # auto-fill width
+
+    def _load_toolbar_layouts(self): #vers 1
+        """Restore saved toolbar layouts on startup."""
+        try:
+            tb_left  = getattr(self, '_transform_icon_panel_ref', None)
+            tb_right = getattr(self, '_preview_toolbar', None)
+            if tb_left:
+                tb_left.load_layout()
+            if tb_right:
+                tb_right.load_layout()
+        except Exception as e:
+            pass   # silently ignore — defaults are fine
+
+    def _reflow_right_toolbar(self, pos: str): #vers 1
+        """Reflow right preview controls based on dock state.
+        Floating → single column (all icons stacked vertically).
+        Docked left/right → single column.
+        Docked top/bottom → single row."""
+        from apps.components.Txd_Editor.dockable_toolbar import SNAP_LEFT, SNAP_RIGHT, SNAP_TOP, SNAP_BOTTOM
+        n = len(getattr(self, '_preview_ctrl_view_btns', []))
+        if pos == 'float':
+            self._reflow_preview_controls(1)    # single column while floating
+        elif pos in (SNAP_LEFT, SNAP_RIGHT):
+            self._reflow_preview_controls(1)    # single column on left/right
+        elif pos in (SNAP_TOP, SNAP_BOTTOM):
+            self._reflow_preview_controls(n)    # single row on top/bottom
+        else:
+            self._reflow_preview_controls(None) # auto
+
+    def _icon_panel_context_menu(self, global_pos): #vers 1
+        """Right-click menu on the icon toolbar — toggle horizontal/vertical."""
+        from PyQt6.QtWidgets import QMenu
+        menu = QMenu(self)
+        is_vert = getattr(self, '_icon_panel_vertical', False)
+        toggle_act = menu.addAction(
+            "Switch to Horizontal" if is_vert else "Switch to Vertical")
+        menu.addSeparator()
+        menu.addAction("Reset to Horizontal", self._reset_icon_panel_horizontal)
+        act = menu.exec(global_pos)
+        if act is toggle_act:
+            self._toggle_icon_panel_orientation()
+
+    def _toggle_icon_panel_orientation(self): #vers 1
+        """Toggle the icon toolbar between horizontal (top) and vertical (left side)."""
+        is_vert = getattr(self, '_icon_panel_vertical', False)
+        self._icon_panel_vertical = not is_vert
+        self._apply_icon_panel_orientation()
+
+    def _reset_icon_panel_horizontal(self): #vers 1
+        self._icon_panel_vertical = False
+        self._apply_icon_panel_orientation()
+
+    def _apply_icon_panel_orientation(self): #vers 1
+        """Re-parent the icon panel into the correct layout position and reflow.
+        Also persists the orientation choice to app settings."""
+        from PyQt6.QtWidgets import QSizePolicy
+        # Save preference
+        is_vert = getattr(self, '_icon_panel_vertical', False)
+        try:
+            if self.main_window and hasattr(self.main_window, 'app_settings'):
+                self.main_window.app_settings.set_setting(
+                    'txd_icon_panel_vertical', is_vert)
+        except Exception:
+            pass
+        ip   = getattr(self, '_transform_icon_panel_ref', None)
+        rp   = getattr(self, '_right_panel_ref', None)
+        if ip is None or rp is None:
+            return
+
+        is_vert = getattr(self, '_icon_panel_vertical', False)
+        main_lo = rp.layout()   # QVBoxLayout of right_panel
+
+        # Find the preview_row (QHBoxLayout at index 1 or 2)
+        preview_row = None
+        for i in range(main_lo.count()):
+            item = main_lo.itemAt(i)
+            if item and item.layout() and hasattr(item.layout(), 'count'):
+                # The preview row is the HBox containing preview_widget
+                lo = item.layout()
+                for j in range(lo.count()):
+                    sub = lo.itemAt(j)
+                    if sub and sub.widget() is self.preview_widget:
+                        preview_row = lo
+                        preview_row_idx = i
+                        break
+            if preview_row:
+                break
+
+        if preview_row is None:
+            return
+
+        if is_vert:
+            # Remove icon panel from main_layout top
+            main_lo.removeWidget(ip)
+            # Insert it into the preview_row as left-most widget
+            preview_row.insertWidget(0, ip)
+            # In vertical mode: 1 column, auto height
+            ip.setMaximumWidth(30)   # single column: 26px + 4px margin
+            self._place_icon_grid(1)
+            ip.setSizePolicy(
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        else:
+            # Remove from preview_row
+            preview_row.removeWidget(ip)
+            # Re-insert at top of main_layout
+            main_lo.insertWidget(0, ip)
+            ip.setMaximumWidth(16777215)
+            ip.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            pw = ip.width() or rp.width()
+            self._place_icon_grid(max(1, pw // 26))
+
+    def _place_icon_grid(self, n_cols=None): #vers 3
+        """Reflow icon buttons.
+        n_cols: explicit count — stored as forced value, blocks auto-resize.
+                None — auto-compute from panel width, clears forced value."""
+        panel = self.transform_icon_panel
+        grid  = self._icon_panel_grid
+        btns  = self._icon_panel_buttons
+        if not btns:
+            return
+
+        btn_w = 26   # button (24px) + gap (2px)
+
+        if n_cols is not None:
+            # Explicit: store as forced value so resize event doesn't override
+            self._icon_panel_forced_cols = n_cols
+        else:
+            # Auto: clear forced value, compute from width
+            self._icon_panel_forced_cols = None
+            pw = panel.width()
+            if pw < btn_w:
+                pw = panel.minimumWidth()
+            n_cols = max(1, pw // btn_w)
+
+        self._icon_panel_last_cols = n_cols
+
+        # Clear grid
+        for i in range(grid.count() - 1, -1, -1):
             item = grid.itemAt(i)
             if item and item.widget():
                 grid.removeWidget(item.widget())
-        # Place in n_cols columns
+
+        # Place left-to-right, top-to-bottom
         for idx, btn in enumerate(btns):
-            row = idx // n_cols
-            col = idx % n_cols
-            grid.addWidget(btn, row, col)
-        # Set panel width to fit n_cols * btn_size
-        btn_w = 36   # 34 + 2px spacing
-        panel_w = n_cols * btn_w + 6
-        self.transform_icon_panel.setMinimumWidth(panel_w)
-        self.transform_icon_panel.setMaximumWidth(panel_w + 4)
+            grid.addWidget(btn, idx // n_cols, idx % n_cols)
+
+        # Constrain panel size to fit the grid
+        if n_cols == 1:
+            # Single column — fix width
+            panel.setMinimumWidth(btn_w + 4)
+            panel.setMaximumWidth(btn_w + 4)
+        elif n_cols >= len(btns):
+            # Single row — fix height, let width be natural
+            panel.setMinimumWidth(btn_w + 4)
+            panel.setMaximumWidth(16777215)
+        else:
+            panel.setMinimumWidth(btn_w + 4)
+            panel.setMaximumWidth(16777215)
 
     def _create_transform_text_panel(self): #vers 13
         """Text+icon buttons — shown when panel is wide enough.
@@ -11913,10 +12358,10 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         return bytes(alpha_display)
 
 
-    # ── TXD method aliases and stubs (Build 131) ─────────────────────
+    #    TXD method aliases and stubs (Build 131)                      
     def _export_all_textures(self, *a, **kw): return self.export_all_textures(*a, **kw)
     def _export_selected_texture(self, *a, **kw): return self.export_selected_texture(*a, **kw)
-    def _open_txd_file(self, *a, **kw): pass  # TODO: _open_file
+    def _open_txd_file(self, *a, **kw): pass  # STUB: delegate to _open_file
     def copy_texture(self, *a, **kw): return self._copy_texture(*a, **kw)
     def delete_texture(self, *a, **kw): return self._delete_texture(*a, **kw)
     def duplicate_texture(self, *a, **kw): return self._duplicate_texture(*a, **kw)
@@ -12116,7 +12561,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         dlg.exec()
 
 
-    def flip_texture(self): #vers 2 - TODO - to be rmeoved.
+    def flip_texture(self): #vers 2  # deprecated, pending removal
         """Flip between normal and alpha channel view (only if alpha exists)"""
         if not self.selected_texture:
             QMessageBox.warning(self, "No Selection", "Please select a texture first")
@@ -12335,6 +12780,55 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             QMessageBox.critical(self, "Error", f"Failed to open IMG: {str(e)}")
 
 
+    def _find_txd_via_db(self, txd_name: str) -> bool: #vers 1
+        """Look up a TXD by name in the asset DB and load it.
+        txd_name: stem (e.g. 'landstal') or full name ('landstal.txd').
+        Returns True if found and loaded."""
+        import os
+        mw  = getattr(self, 'main_window', None)
+        db  = getattr(mw, 'asset_db', None)
+        if db is None:
+            return False
+        stem  = os.path.splitext(txd_name.lower())[0]
+        fname = stem + '.txd'
+        # find_img_entry looks in img_entries by entry_name
+        row = db.find_img_entry(fname)
+        if row is None:
+            return False
+        src_path = row['source_path']
+        entry_nm = row['entry_name']
+        if not src_path or not os.path.isfile(src_path):
+            return False
+        try:
+            from apps.methods.img_core_classes import IMGFile
+            arc = IMGFile(src_path)
+            arc.open()
+            entry = next(
+                (e for e in arc.entries
+                 if e.name.lower() == entry_nm.lower()),
+                None)
+            if entry is None:
+                return False
+            data = arc.read_entry_data(entry)
+            if not data:
+                return False
+            import tempfile
+            with tempfile.NamedTemporaryFile(
+                    delete=False, suffix='.txd',
+                    prefix=stem + '_') as tf:
+                tf.write(data)
+                tmp = tf.name
+            self.open_txd_file(tmp)
+            if mw and hasattr(mw, 'log_message'):
+                mw.log_message(
+                    f"TXD Workshop: loaded {entry_nm} "
+                    f"from {os.path.basename(src_path)} via DB")
+            return True
+        except Exception as e:
+            if mw and hasattr(mw, 'log_message'):
+                mw.log_message(f"TXD DB lookup error: {e}")
+            return False
+
     def open_txd_file(self, file_path=None): #vers 3
         """Open standalone TXD file with version detection"""
         try:
@@ -12390,7 +12884,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
                     self._open_xtx_file(file_path)
                     return
 
-                # ── Undocumented: XTD texture dicts (.wtd/.ytd) ──────────────
+                #    Undocumented: XTD texture dicts (.wtd/.ytd)               
                 if _ext in ('.wtd', '.ytd'):
                     self._open_xtd_file(file_path)
                     return
@@ -12429,7 +12923,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
 
 
 
-    # ── Texture Tools ─────────────────────────────────────────────────────────
+    #    Texture Tools                                                          
 
     def _get_current_rgba(self):
         """Return (rgba, w, h, name) for the selected texture, or (None,0,0,'')."""
@@ -13777,7 +14271,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
             return
 
         # Check if modified
-        # TODO: Check modification state
+        # STUB: check modification state before close
 
         self.txd_tabs.removeTab(index)
 
@@ -13787,7 +14281,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         if index < 0:
             return
 
-        # TODO: Load texture list for this tab
+        # STUB: load texture list for this tab
         tab_name = self.txd_tabs.tabText(index)
 
         if self.main_window and hasattr(self.main_window, 'log_message'):
@@ -14575,7 +15069,7 @@ class TXDWorkshop(ToolMenuMixin, QWidget): #vers 4
         if self.main_window and hasattr(self.main_window, 'log_message'):
             self.main_window.log_message("Hotkeys updated")
 
-        # TODO: Save to config file for persistence
+        # STUB: save hotkeys to config
 
         if close:
             dialog.accept()
@@ -16677,11 +17171,25 @@ class BumpmapManagerWindow(QWidget): #vers 1
             QMessageBox.information(self, "Success", "Changes applied to texture")
 
 
-    def closeEvent(self, event): #vers 1
+    def closeEvent(self, event): #vers 2
         """Handle window close event"""
-
+        # Save toolbar layouts
+        try:
+            for attr in ('_transform_icon_panel_ref', '_preview_toolbar'):
+                tb = getattr(self, attr, None)
+                if tb and hasattr(tb, 'save_layout'):
+                    tb.save_layout()
+        except Exception:
+            pass
         # Save settings before closing
         self._save_settings()
+        # Remove injected tool menu from imgfactory menubar
+        try:
+            mw = getattr(self, 'main_window', None) or getattr(self, '_imgfactory', None)
+            if mw and hasattr(mw, '_update_tool_menu_for_tab'):
+                mw._update_tool_menu_for_tab(None)
+        except Exception:
+            pass
 
         if self.modified:
             from PyQt6.QtWidgets import QMessageBox
@@ -18226,7 +18734,13 @@ class TexturePreviewWidget(QLabel): #vers 1
                     else:
                         painter.fillRect(x, y, checker_size, checker_size, dark_gray)
         elif self.bg_color:
-            painter.fillRect(self.rect(), self.bg_color)
+            # Use palette(base) if no explicit color set (theme-aware)
+          bg = self.bg_color
+          if bg is None:
+              from PyQt6.QtGui import QColor
+              win = self.palette().color(self.palette().ColorRole.Window)
+              bg = QColor(245, 245, 245) if win.lightness() > 128 else QColor(42, 42, 42)
+          painter.fillRect(self.rect(), bg)
         else:
             painter.fillRect(self.rect(), QColor(42, 42, 42))
 
@@ -18252,7 +18766,8 @@ class ZoomablePreview(QLabel): #vers 2
         self.pan_offset = QPoint(0, 0)
         self.dragging = False
         self.drag_start = QPoint(0, 0)
-        self.bg_color = QColor(42, 42, 42)
+        # Theme-aware default: set in first paintEvent from palette
+        self.bg_color = None   # None = auto from palette
         self.background_mode = 'solid'
         self._checkerboard_size = 16
         self.placeholder_text = "No texture loaded"
@@ -18301,7 +18816,13 @@ class ZoomablePreview(QLabel): #vers 2
         if self.background_mode == 'checkerboard':
             self._draw_checkerboard(painter)
         else:
-            painter.fillRect(self.rect(), self.bg_color)
+            # Use palette(base) if no explicit color set (theme-aware)
+          bg = self.bg_color
+          if bg is None:
+              from PyQt6.QtGui import QColor
+              win = self.palette().color(self.palette().ColorRole.Window)
+              bg = QColor(245, 245, 245) if win.lightness() > 128 else QColor(42, 42, 42)
+          painter.fillRect(self.rect(), bg)
 
         # Draw image if available
         if self.scaled_pixmap and not self.scaled_pixmap.isNull():
@@ -18385,10 +18906,16 @@ class ZoomablePreview(QLabel): #vers 2
         self.update()
 
 
-    def set_background_color(self, color): #vers 1
-        """Set solid background color"""
+    def set_background_color(self, color): #vers 2
+        """Set solid background color (None = auto from palette)"""
         self.background_mode = 'solid'
         self.bg_color = color
+        self.update()
+
+    def reset_background_to_theme(self): #vers 1
+        """Reset background to follow the current theme palette."""
+        self.bg_color = None
+        self.background_mode = 'solid'
         self.update()
 
 
