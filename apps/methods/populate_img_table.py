@@ -178,6 +178,26 @@ class IMGTablePopulator:
     def __init__(self, main_window):
         self.main_window = main_window
 
+
+    def _get_ui_color(self, key): #vers 1
+        """Return theme-aware QColor. No hardcoded colors - everything via app_settings."""
+        from PyQt6.QtGui import QColor
+        try:
+            app_settings = getattr(self, 'app_settings', None) or \
+                getattr(getattr(self, 'main_window', None), 'app_settings', None)
+            if app_settings and hasattr(app_settings, 'get_ui_color'):
+                return app_settings.get_ui_color(key)
+        except Exception:
+            pass
+        pal = self.palette()
+        if key == 'viewport_bg':
+            return pal.color(pal.ColorRole.Base)
+        if key == 'viewport_text':
+            return pal.color(pal.ColorRole.PlaceholderText)
+        if key == 'border':
+            return pal.color(pal.ColorRole.Mid)
+        return pal.color(pal.ColorRole.WindowText)
+
     def populate_table_with_img_data(self, img_file: Any) -> bool: #vers 9
         """Populate table with IMG entry data - MINIMAL VERSION to prevent freezing"""
         try:
@@ -669,7 +689,7 @@ def apply_xref_status(table, xref) -> int: #vers 2
 
     green  = QColor(0, 160, 0)
     red    = QColor(180, 0, 0)
-    grey   = QColor(120, 120, 120)
+    grey   = self._get_ui_color('viewport_text')
 
     # Detect column indices by header name — robust to layout differences
     STATUS = IDE_MODEL = IDE_TXD = -1
