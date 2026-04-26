@@ -2,24 +2,60 @@
 ├── AI_Rules.md
 ├── appfactory.settings.json
 ├── apps
+│   ├── appfactory.settings.json
+│   ├── app_info.py
 │   ├── components
 │   │   ├── img_factory_debug.log
 │   │   ├── __init__.py
 │   │   ├── Txd_Editor
+│   │   │   ├── depends
+│   │   │   │   ├── chk_parser.py
+│   │   │   │   ├── col_workshop_parser.py
+│   │   │   │   ├── dff_classes.py
+│   │   │   │   ├── dff_parser.py
+│   │   │   │   ├── gui_workshop.py
+│   │   │   │   ├── iff_ilbm.py
+│   │   │   │   ├── iff_import.py
+│   │   │   │   ├── imgcol_exists.py
+│   │   │   │   ├── img_core_classes.py
+│   │   │   │   ├── img_factory_settings.py
+│   │   │   │   ├── imgfactory_ui_settings.py
+│   │   │   │   ├── indexed_color_import.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── mobile_texture_db.py
+│   │   │   │   ├── mobile_texture_decode.py
+│   │   │   │   ├── populate_img_table.py
+│   │   │   │   ├── progressbar_functions.py
+│   │   │   │   ├── pvrtc_decode.py
+│   │   │   │   ├── rw_versions.py
+│   │   │   │   ├── svg_icon_factory.py
+│   │   │   │   ├── svg_shared_icons.py
+│   │   │   │   ├── txd_context_menu.py
+│   │   │   │   ├── txd_ps2_parser.py
+│   │   │   │   ├── txd_serializer.py
+│   │   │   │   ├── txd_tools.py
+│   │   │   │   ├── txd_versions.py
+│   │   │   │   ├── txd_workshop_theme.py
+│   │   │   │   ├── xtd_textures.py
+│   │   │   │   └── xtx_reader.py
+│   │   │   ├── dockable_toolbar.py
+│   │   │   ├── dp5_paint_editor.py
+│   │   │   ├── __init__.py
+│   │   │   ├── Simple_Paint_Editor.py
 │   │   │   └── txd_workshop.py
 │   │   └── unified_signal_handler.py
+│   ├── core
+│   │   └── __init__.py
 │   ├── debug
-│   │   └── debug_functions.py
+│   │   ├── debug_functions.py
+│   │   └── __init__.py
+│   ├── gui
+│   │   ├── __init__.py
+│   │   └── tool_menu_mixin.py
+│   ├── __init__.py
 │   ├── methods
-│   │   ├── iff_import.py
-│   │   ├── indexed_color_import.py
-│   │   ├── progressbar_functions.py
-│   │   ├── svg_icon_factory.py
-│   │   ├── svg_shared_icons.py
-│   │   ├── txd_context_menu.py
-│   │   ├── txd_serializer.py
-│   │   ├── txd_versions.py
-│   │   └── txd_workshop_theme.py
+│   │   ├── imgfactory_svg_icons.py
+│   │   └── __init__.py
 │   ├── templates
 │   │   └── new_templates.json
 │   ├── themes
@@ -32,6 +68,8 @@
 │   │   ├── bluish_light.json
 │   │   ├── classic_dark.json
 │   │   ├── cyberpunk_dark.json
+│   │   ├── default_green.json
+│   │   ├── Default Green.json
 │   │   ├── garujaro_dark.json
 │   │   ├── green_shad_light.json
 │   │   ├── green_theme_light.json
@@ -44,6 +82,8 @@
 │   │   ├── img_factory_light.json
 │   │   ├── knight_rider_dark.json
 │   │   ├── lavender_theme_light.json
+│   │   ├── manjaro2_dark.json
+│   │   ├── manjaro_dark.json
 │   │   ├── matrix_dark.json
 │   │   ├── pastel_theme_light.json
 │   │   ├── peach_theme_light.json
@@ -59,11 +99,13 @@
 │   │   └── yellow_theme_light.json
 │   └── utils
 │       ├── app_settings_system.py
+│       ├── __init__.py
 │       ├── themer_settings.json
 │       └── update_themes_script.py
 ├── cc.py
 ├── ChangeLog.md
 ├── Credits.md
+├── img_factory_debug.log
 ├── launch_txd_workshop.py
 ├── LICENSE
 ├── package-lock.json
@@ -71,4 +113,4 @@
 ├── TODO.md
 └── tree.git
 
-9 directories, 63 files
+12 directories, 102 files

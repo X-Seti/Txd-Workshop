@@ -7,10 +7,6 @@ Updated imports and method list for txd_workshop.py
 Replace the existing imports and ##Methods list section
 """
 
-import sys as _sys
-from pathlib import Path as _Path
-_sys.path.insert(0, str(_Path(__file__).parent / "depends"))
-
 import os
 import tempfile
 import subprocess
@@ -28,12 +24,12 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QRect, QByteArray
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QImage, QPainter, QPen, QBrush, QColor, QCursor
 from PyQt6.QtSvg import QSvgRenderer
 
-from txd_versions import ( detect_txd_version, get_platform_name, get_game_from_version, get_version_capabilities, get_platform_capabilities, is_mipmap_supported, is_bumpmap_supported, validate_txd_format, TXDPlatform, detect_platform_from_data)
+from apps.methods.txd_versions import ( detect_txd_version, get_platform_name, get_game_from_version, get_version_capabilities, get_platform_capabilities, is_mipmap_supported, is_bumpmap_supported, validate_txd_format, TXDPlatform, detect_platform_from_data)
 
-from txd_versions import (detect_txd_version, get_version_string, get_platform_name, get_platform_capabilities, TXDPlatform, TXDVersion)
+from apps.methods.txd_versions import (detect_txd_version, get_version_string, get_platform_name, get_platform_capabilities, TXDPlatform, TXDVersion)
 
 from apps.methods.imgfactory_svg_icons import SVGIconFactory
-from txd_context_menu import setup_txd_context_menu
+from apps.gui.txd_context_menu import setup_txd_context_menu
 
 
 from apps.debug.debug_functions import img_debugger

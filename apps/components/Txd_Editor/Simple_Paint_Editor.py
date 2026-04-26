@@ -318,6 +318,26 @@ class DP5PaletteBar(QWidget):
         self.setMinimumHeight(200)
         self.setToolTip("Click to select colour")
 
+
+    def _get_ui_color(self, key): #vers 1
+        """Return theme-aware QColor. No hardcoded colors - everything via app_settings."""
+        from PyQt6.QtGui import QColor
+        try:
+            app_settings = getattr(self, 'app_settings', None) or \
+                getattr(getattr(self, 'main_window', None), 'app_settings', None)
+            if app_settings and hasattr(app_settings, 'get_ui_color'):
+                return app_settings.get_ui_color(key)
+        except Exception:
+            pass
+        pal = self.palette()
+        if key == 'viewport_bg':
+            return pal.color(pal.ColorRole.Base)
+        if key == 'viewport_text':
+            return pal.color(pal.ColorRole.PlaceholderText)
+        if key == 'border':
+            return pal.color(pal.ColorRole.Mid)
+        return pal.color(pal.ColorRole.WindowText)
+
     def _default_palette(self) -> List[QColor]:
         entries = [
             (0,0,0),(255,255,255),(255,0,0),(0,255,0),(0,0,255),(255,255,0),
@@ -341,7 +361,7 @@ class DP5PaletteBar(QWidget):
             if y >= self.height(): break
             p.fillRect(0, y, sw, sw, c)
             if i == self.selected:
-                p.setPen(QPen(QColor(255,255,255), 2))
+                p.setPen(QPen(self._get_ui_color('viewport_bg'), 2))
                 p.drawRect(1, y+1, sw-3, sw-3)
 
     def mousePressEvent(self, e: QMouseEvent):
@@ -624,7 +644,7 @@ class DP5PaintEditor(QDialog):
         fg = '#000000' if luma > 128 else '#ffffff'
         self.color_btn.setStyleSheet(
             f"background:{c.name()}; color:{fg}; "
-            f"border: 2px solid {'#ffffff' if luma<128 else '#000000'};")
+            f"border: 2px solid {'palette(buttonText)' if luma<128 else 'palette(windowText)'};")
         self.color_btn.setText(c.name().upper())
 
     def _pick_color(self):
