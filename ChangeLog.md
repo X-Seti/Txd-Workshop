@@ -1,6 +1,57 @@
-#this belongs in root /ChangeLog.md - Version: 32
+#this belongs in root /ChangeLog.md - Version: 33
 
-## March–April 2026 — TXD GTA3/VC fixes, COL ops, log dedup
+## July 2026 — Native QToolBar ribbon rebuild
+
+**txd_workshop.py:**
+- Replaced the old DockableToolbar-based panels (_create_transform_icon_panel,
+  _create_transform_text_panel, _create_preview_controls, plus their
+  reflow/grid helpers) with a native QMainWindow + QToolBar system -
+  Transform, Navigation, Effects ribbons. RibbonManagerDialog added:
+  two-pane dialog to reassign actions between toolbars, create/delete
+  toolbars, save/load named presets, drag to reorder, plus an icon-size
+  slider (was only reachable via toolbar right-click before).
+- The old icon-vs-text dual-mode toggle (two separate full panels,
+  switched by visibility) replaced by QToolBar's native
+  setToolButtonStyle() - one ribbon now handles icon-only/text-only/both
+  instead of maintaining two. Default display mode changed to icons-only
+  per request.
+- Found and fixed several real bugs the old dual-mode system had, all
+  dormant until icons-mode became the default and started exercising
+  them for the first time:
+  - _set_status() called in 3 places but never defined anywhere in this
+    file (every other workshop has it).
+  - self.export_btn/import_btn only ever built in the text/both-mode
+    branch - icons mode would crash the instant a texture was selected
+    (self.export_btn.setEnabled(True) on a nonexistent attribute).
+  - _create_merged_icons_line referenced an undefined 'info_layout'
+    variable (should've been 'merged_layout') and, separately, an
+    undefined 'texture' variable in a bumpmap-detection block that
+    duplicated logic already done correctly elsewhere.
+  - A typo'd create_manage_icon (missing the underscore prefix every
+    sibling icon call used).
+  - _apply_button_mode_to_button called setFixedSize() on QActions from
+    the new ribbon - a hasattr() guard didn't reliably catch this on
+    all PyQt6 builds, replaced with an explicit isinstance(QAction) check.
+- Bottom info panel (name/alpha fields, format/bitdepth/resize/compress,
+  mipmap/bumpmap controls) converted to three ribbons: Name, Format,
+  Mipmaps. This fixed truncated/overlapping button text in icons mode
+  (the old row kept full text labels squeezed next to icons instead of
+  being true icon-only) and an alpha-name field that wouldn't show -
+  QToolBar.addWidget() wraps widgets in a QWidgetAction, and toggling the
+  inner widget's visibility directly doesn't reliably relayout the
+  toolbar; needed to toggle the wrapping action too.
+- Icon-scale persistence bug fixed (slider wrote to txd_workshop.json but
+  nothing read it back on next launch).
+- Ribbon layout save/restore made version-aware: _RIBBON_LAYOUT_VERSION
+  class constant (bumped 1 -> 3 across the Name/Format split) passed into
+  QMainWindow.saveState()/restoreState(), stale saves cleanly rejected,
+  restoreState()'s return value checked/logged, all 6 ribbons force-shown
+  after every restore attempt regardless of outcome.
+- #vers tags added to 67 previously-untagged methods, full ##Methods
+  list rebuilt, header filename typo fixed (was missing the apps/ prefix
+  and had a stray space in the path).
+
+
 
 ### Build 180 — Fix PAL8/PAL4 pixel data offset (4-byte size prefix)
 - **Root cause**: GTA3/VC TXD PAL8 layout is `palette(1024 raw) + pixel_size(4) + pixels(w*h)`
