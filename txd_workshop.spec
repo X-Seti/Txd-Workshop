@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-#this belongs in root /txd_workshop.spec - Version: 2
+#this belongs in root /txd_workshop.spec - Version: 3
 # X-Seti - September30 2026 - Txd Workshop - PyInstaller build spec (Windows)
 
 """
@@ -10,6 +10,7 @@ Build: pyinstaller txd_workshop.spec  ->  dist/Txd_Workshop/Txd_Workshop.exe
 ##Methods list -
 # _app_data
 # _make_icon
+# _version_file
 
 import os
 
@@ -44,6 +45,31 @@ def _make_icon(): #vers 1
     return out
 
 
+
+def _version_file(): #vers 1
+    """Windows version resource (company, product, version) for the exe."""
+    out = os.path.join(ROOT, 'build', 'version_info.txt')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    fields = {'CompanyName': 'X-Seti', 'FileDescription': 'TXD Workshop',
+              'FileVersion': '1.6.0.0', 'InternalName': 'Txd_Workshop',
+              'LegalCopyright': 'X-Seti, GPL-3.0', 'OriginalFilename': 'Txd_Workshop.exe',
+              'ProductName': 'TXD Workshop', 'ProductVersion': '1.6.0.0'}
+    strings = ',\n'.join(f"            StringStruct('{k}', '{v}')" for k, v in fields.items())
+    text = f"""VSVersionInfo(
+  ffi=FixedFileInfo(filevers=(1, 6, 0, 0), prodvers=(1, 6, 0, 0), mask=0x3f, flags=0x0,
+                    OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+  kids=[
+    StringFileInfo([StringTable('080904B0', [
+{strings}
+    ])]),
+    VarFileInfo([VarStruct('Translation', [2057, 1200])])
+  ]
+)
+"""
+    with open(out, 'w', encoding='utf-8') as f:
+        f.write(text)
+    return out
+
 a = Analysis(
     ['launch_txd_workshop.py'],
     pathex=[ROOT],
@@ -60,6 +86,7 @@ exe = EXE(
     name='Txd_Workshop',
     console=False,
     icon=_make_icon(),
+    version=_version_file(),
     upx=False,
 )
 coll = COLLECT(exe, a.binaries, a.datas, upx=False, name='Txd_Workshop')
