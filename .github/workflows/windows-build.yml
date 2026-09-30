@@ -1,4 +1,4 @@
-# this belongs in root /.github/workflows/windows-build.yml - Version: 1
+# this belongs in root /.github/workflows/windows-build.yml - Version: 2
 # X-Seti - September30 2026 - Txd Workshop - Windows exe build (PyInstaller)
 name: Windows build
 
@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller PyQt6 numpy pycryptodome mss Pillow
+          pip install pyinstaller PyQt6 numpy pycryptodome mss Pillow pygame
 
       - name: Optional LZO support
         continue-on-error: true

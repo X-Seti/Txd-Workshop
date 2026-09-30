@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-#this belongs in root /txd_workshop.spec - Version: 1
+#this belongs in root /txd_workshop.spec - Version: 2
 # X-Seti - September30 2026 - Txd Workshop - PyInstaller build spec (Windows)
 
 """
@@ -49,7 +49,7 @@ a = Analysis(
     pathex=[ROOT],
     binaries=[],
     datas=_app_data() + [(os.path.join(ROOT, 'appfactory.settings.json'), '.')],
-    hiddenimports=['PyQt6.QtSvg', 'PIL.Image', 'numpy'],
+    hiddenimports=['PyQt6.QtSvg', 'PIL.Image', 'numpy', 'pygame', 'pygame._sdl2.controller'],
     excludes=['tkinter'],
     noarchive=False,
 )

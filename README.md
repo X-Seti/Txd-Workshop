@@ -21,6 +21,7 @@ python3 launch_txd_workshop.py
 - Save as TXD with version selector; build TXD from DFF materials.
 - Ribbon Manager: move buttons, presets, custom icons from icons/.
 - Drag and drop .txd, .img or image files onto the window.
+- PS5 / game controller: pan, zoom, pick texture (pip install pygame).
 
 ## Code layout
 | File | Job |

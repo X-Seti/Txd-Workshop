@@ -1,4 +1,8 @@
-#this belongs in root /ChangeLog.md - Version: 35
+#this belongs in root /ChangeLog.md - Version: 36
+
+## Sep 30 2026 - Game controller, grip splitters, fixes
+- PS5 / game controller (Navigation ribbon): pan, zoom, texture pick, reset, flip, view mode, tabs. Exe bundles pygame.
+- Grip splitters in bumpmap window and DP5 docks; Paint loads via DP5 loader; Pick Background crash fixed.
 
 ## Sep 30 2026 - Audit sync and Windows build
 - Dead code removed; menu, convert, upscale, settings and mipmap hang fixed; no emoji; grip splitter, compact buttons, drag and drop.
