@@ -1,4 +1,7 @@
-#this belongs in root /ChangeLog.md - Version: 37
+#this belongs in root /ChangeLog.md - Version: 38
+
+## Sep 30 2026 - Save fix, multi-select, resize, Paint window
+- Ctrl+S keeps pixel edits; Shift/Ctrl multi-select edits; new Resize dialog; Paint opens DP5 in its own window; themed mipmap/bumpmap windows.
 
 ## Sep 30 2026 - Check DFF and Undo fixed
 - Check DFF / Build from DFF now read DFF texture names (rw_chunks); Undo button enabled and more actions undoable.
