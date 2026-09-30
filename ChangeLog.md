@@ -1,4 +1,8 @@
-#this belongs in root /ChangeLog.md - Version: 33
+#this belongs in root /ChangeLog.md - Version: 34
+
+## Sep 30 2026 - Split layout, synced from IMG Factory
+- txd_workshop.py split into depends/ win, ui, logic mixins; shared windows, DXT encoders, Ribbon Manager in methods/.
+- Old copied depends/ modules, dockable_toolbar, Simple_Paint_Editor removed; README rewritten; personal paths removed from settings.
 
 ## July 2026 — Native QToolBar ribbon rebuild
 

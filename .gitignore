@@ -4,3 +4,5 @@ apps/__pycache__/__init__.cpython-314.pyc
 apps/components/__pycache__/__init__.cpython-314.pyc
 apps/components/Txd_Editor/__pycache__/txd_workshop.cpython-314.pyc
 apps/gui/__pycache__/__init__.cpython-314.pyc
+*.log
+__pycache__/

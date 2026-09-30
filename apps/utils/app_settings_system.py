@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#This goes in root/apps/utils/app_settings_system.py - version 74
+#This goes in root/apps/utils/app_settings_system.py - version 79
 # $vers" X-Seti - June26, 2025 - App Factory - Package theme settings
 
 """
@@ -1681,7 +1681,7 @@ class DebugSettings:
         return self.debug_enabled
 
 class AppSettings:
-    def __init__(self, settings_file="appfactory.settings.json"): #vers 3
+    def __init__(self, settings_file="appfactory.settings.json"): #vers 4
         """Initialize application settings with Windows compatibility"""
         current_file_dir = Path(__file__).parent
 
@@ -1692,6 +1692,18 @@ class AppSettings:
         else:
             self.themes_dir = current_file_dir / "themes"
             self.settings_file = current_file_dir / settings_file
+
+        # Exe build: settings/ beside the exe; bundled file is the default.
+        # Self-contained here as this master file is synced to all tool repos.
+        import sys
+        if getattr(sys, 'frozen', False):
+            import shutil
+            portable_dir = Path(sys.executable).resolve().parent / 'settings'
+            portable_dir.mkdir(parents=True, exist_ok=True)
+            portable = portable_dir / settings_file
+            if not portable.exists() and self.settings_file.exists():
+                shutil.copyfile(self.settings_file, portable)
+            self.settings_file = portable
 
         # FIXED: Windows-compatible default paths using Path objects
         if os.name == 'nt':  # Windows
@@ -2421,7 +2433,7 @@ class AppSettings:
         return self.default_settings.copy()
 
 
-    def _load_all_themes(self): #vers 2
+    def _load_all_themes(self): #vers 3
         """Load all theme files from apps.themes.directory - Windows compatible"""
         themes = {}
         try:
@@ -2511,7 +2523,7 @@ class AppSettings:
             "show_emoji_in_buttons": False,
             # Path remembering settings (from your existing file)
             "remember_img_output_path": True,
-            "last_img_output_path": "/home/x2",
+            "last_img_output_path": "",
             "remember_import_path": True,
             "last_import_path": "",
             "remember_export_path": True,
@@ -2563,7 +2575,7 @@ class AppSettings:
 
             # NEW: Path remembering settings (from your updated file)
             "remember_img_output_path": True,
-            "last_img_output_path": "/home/x2",
+            "last_img_output_path": "",
             "remember_import_path": True,
             "last_import_path": "",
             "remember_export_path": True,
@@ -3724,7 +3736,7 @@ class PanelPreviewWidget(QWidget): #vers 1
         f = QFont("Arial", 14, QFont.Weight.Bold)
         p.setFont(f)
         from PyQt6.QtCore import Qt
-        AppBuildLabel = (f"{app_name} - Build {App_build}")
+        AppBuildLabel = (f"{App_name} - Build {App_build}")
         p.drawText(r.adjusted(16,0,0,0), Qt.AlignmentFlag.AlignVCenter, AppBuildLabel)
         p.setPen(QColor("#aaaacc"))
         f2 = QFont("Arial", 8)
@@ -4110,7 +4122,7 @@ class SettingsDialog(QDialog): #vers 15
             self.showMaximized()
 
 
-    def _is_on_draggable_area(self, pos): #vers 4
+    def _is_on_draggable_area(self, pos): #vers 5
         """Check if position is on the draggable titlebar area.
         Works for both CustomWindow (self.toolbar) and SettingsDialog
         (self.dialog_titlebar). Returns True if pos is inside the titlebar
@@ -4140,13 +4152,6 @@ class SettingsDialog(QDialog): #vers 15
                 return False
 
         return True
-        for btn in buttons_to_check:
-            btn_global_rect = btn.geometry()
-            btn_rect = btn_global_rect.translated(toolbar_rect.topLeft())
-            if btn_rect.contains(pos):
-                return False  # On a button, not draggable
-
-        return True  # On empty stretch area, draggable
 
 
     def _create_ui(self): #vers 8
@@ -4218,6 +4223,15 @@ class SettingsDialog(QDialog): #vers 15
 
         self.debug_tab = self._create_debug_tab()
         self.tabs.addTab(self.debug_tab, "Debug")
+
+        # Extra tabs contributed by any docked tool currently open as
+        # a main-window tab (Map Workshop, and any future tool doing the same)
+        self._extra_apply_callbacks = []
+        try:
+            for label, widget in self._collect_settings_contributions():
+                self.tabs.addTab(widget, label)
+        except Exception as e:
+            print(f"[Settings] Could not collect docked-tool settings tabs: {e}")
 
         content_layout.addWidget(self.tabs)
 
@@ -5494,7 +5508,7 @@ class SettingsDialog(QDialog): #vers 15
             self.color_editors[selected_data].set_color(color)
 
 
-    def _create_gadgets_tab(self): #vers 4
+    def _create_gadgets_tab(self): #vers 5
         """Create gadgets styling tab with LIVE PREVIEW and proper splitter"""
         tab = QWidget()
         main_layout = QVBoxLayout(tab)
@@ -5780,11 +5794,11 @@ class SettingsDialog(QDialog): #vers 15
         hs_layout.addWidget(QLabel("Handle Style:"))
         self.handle_style_combo = QComboBox()
         self.handle_style_combo.addItems(["line", "gradient", "dots", "invisible"])
-        cs_now = getattr(self, 'current_settings', {})
+        cs_now = self.app_settings.current_settings
         self.handle_style_combo.setCurrentText(cs_now.get('handle_style', 'line'))
         self.handle_style_combo.currentTextChanged.connect(self._update_gadget_preview)
         self.handle_style_combo.currentTextChanged.connect(
-            lambda v: self.current_settings.update({'handle_style': v}))
+            lambda v: self.app_settings.current_settings.update({'handle_style': v}))
         hs_layout.addWidget(self.handle_style_combo, 1)
         splitter_layout.addLayout(hs_layout)
 
@@ -5793,7 +5807,7 @@ class SettingsDialog(QDialog): #vers 15
         self.handle_hide_docked = QCheckBox("Hide handles when docked")
         self.handle_hide_docked.setChecked(cs_now.get('handle_hide_docked', False))
         self.handle_hide_docked.stateChanged.connect(
-            lambda v: self.current_settings.update({'handle_hide_docked': bool(v)}))
+            lambda v: self.app_settings.current_settings.update({'handle_hide_docked': bool(v)}))
         hd_layout.addWidget(self.handle_hide_docked)
         hd_layout.addStretch()
         splitter_layout.addLayout(hd_layout)
@@ -6197,8 +6211,8 @@ class SettingsDialog(QDialog): #vers 15
         }
 
 
-    def _browse_background_image(self, target): #vers 1
-        """Browse for background image"""
+    def _browse_background_image(self, target): #vers 2
+        """Browse for background image (panel, primary, button)"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             f"Select {target.capitalize()} Background Image",
@@ -6207,20 +6221,12 @@ class SettingsDialog(QDialog): #vers 15
         )
 
         if file_path:
-            if target == "panel":
-                self.panel_bg_path.setText(file_path)
-            elif target == "button":
-                self.button_bg_path.setText(file_path)
-            self._on_gadget_changed()
+            getattr(self, f"{target}_bg_path").setText(file_path)
 
 
-    def _clear_background_image(self, target): #vers 1
+    def _clear_background_image(self, target): #vers 2
         """Clear background image"""
-        if target == "panel":
-            self.panel_bg_path.clear()
-        elif target == "button":
-            self.button_bg_path.clear()
-        self._on_gadget_changed()
+        getattr(self, f"{target}_bg_path").clear()
 
 
     def _preview_gadget_styles(self): #vers 1
@@ -9661,6 +9667,36 @@ Ready for operations..."""
 
         return settings
 
+    def _collect_settings_contributions(self): #vers 1
+        """Find any docked tool currently open as a tab in the main
+        window that exposes get_settings_contribution()"""
+        contributions = []
+        mw = getattr(self, 'main_window', None)
+        tab_widget = getattr(mw, 'main_tab_widget', None)
+        if tab_widget is None:
+            return contributions
+        seen_ids = set()
+        for i in range(tab_widget.count()):
+            page = tab_widget.widget(i)
+            if page is None:
+                continue
+            candidates = [page] + page.findChildren(QWidget)
+            for w in candidates:
+                if id(w) in seen_ids:
+                    continue
+                get_contrib = getattr(w, 'get_settings_contribution', None)
+                if get_contrib is None or not callable(get_contrib):
+                    continue
+                seen_ids.add(id(w))
+                try:
+                    extra_tabs, apply_fn = get_contrib()
+                except Exception as e:
+                    print(f"[Settings] get_settings_contribution failed for {w}: {e}")
+                    continue
+                contributions.extend(extra_tabs)
+                if callable(apply_fn):
+                    self._extra_apply_callbacks.append(apply_fn)
+        return contributions
 
     def _apply_settings(self): #vers 6
         """Apply settings permanently and save to appfactory.settings.json AND theme files"""
@@ -9743,6 +9779,14 @@ Ready for operations..."""
             self.setStyleSheet(self.app_settings.get_stylesheet())
         except Exception as _pe:
             print(f"Panel effects error: {_pe}")
+
+        # Apply any settings contributed by docked tools (Map
+        # Workshop, etc.)
+        for extra_apply in getattr(self, '_extra_apply_callbacks', []):
+            try:
+                extra_apply()
+            except Exception as e:
+                print(f"[Settings] A docked tool's settings apply failed: {e}")
 
         QMessageBox.information(
             self,
