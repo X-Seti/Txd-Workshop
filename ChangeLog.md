@@ -1,4 +1,8 @@
-#this belongs in root /ChangeLog.md - Version: 34
+#this belongs in root /ChangeLog.md - Version: 35
+
+## Sep 30 2026 - Audit sync and Windows build
+- Dead code removed; menu, convert, upscale, settings and mipmap hang fixed; no emoji; grip splitter, compact buttons, drag and drop.
+- Windows exe build: txd_workshop.spec, GitHub Actions, settings/ and icons/ beside the exe.
 
 ## Sep 30 2026 - Split layout, synced from IMG Factory
 - txd_workshop.py split into depends/ win, ui, logic mixins; shared windows, DXT encoders, Ribbon Manager in methods/.

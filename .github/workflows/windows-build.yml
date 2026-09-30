@@ -1,0 +1,79 @@
+# this belongs in root /.github/workflows/windows-build.yml - Version: 1
+# X-Seti - September30 2026 - Txd Workshop - Windows exe build (PyInstaller)
+name: Windows build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['Txd_Workshop.exe', '_internal/**']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Keep line endings as-is
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller PyQt6 numpy pycryptodome mss Pillow
+
+      - name: Optional LZO support
+        continue-on-error: true
+        run: pip install python-lzo
+
+      - name: Build exe
+        run: pyinstaller --noconfirm txd_workshop.spec
+
+      - name: Import check
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python -c "import sys; sys.path.insert(0, '.'); from PyQt6.QtWidgets import QApplication; app = QApplication(sys.argv); from apps.components.Txd_Editor.txd_workshop import TXDWorkshop; w = TXDWorkshop(); print('TXDWorkshop OK')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Txd_Workshop_Windows
+          path: dist/Txd_Workshop
+
+      - name: Add default settings
+        run: if (Test-Path settings) { Copy-Item settings dist/Txd_Workshop/settings -Recurse -Force }
+      - name: Add icons folder
+        run: Copy-Item icons dist/Txd_Workshop/icons -Recurse -Force
+
+      - name: Zip build
+        run: Compress-Archive -Path dist/Txd_Workshop -DestinationPath Txd_Workshop_Windows.zip
+
+      - name: Publish release windows-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete windows-build --cleanup-tag -y 2>$null
+          $global:LASTEXITCODE = 0
+          gh release create windows-build Txd_Workshop_Windows.zip --target $env:GITHUB_SHA --prerelease --title "Txd Workshop Windows build" --notes "Latest main build. Unzip and run Txd_Workshop/Txd_Workshop.exe."
+
+      - name: Commit exe to repo root
+        run: |
+          if (Test-Path _internal) { Remove-Item _internal -Recurse -Force }
+          Copy-Item dist/Txd_Workshop/_internal _internal -Recurse
+          Copy-Item dist/Txd_Workshop/Txd_Workshop.exe . -Force
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A Txd_Workshop.exe _internal
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Windows exe build $($env:GITHUB_SHA.Substring(0,7)) [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          }
+          $global:LASTEXITCODE = 0

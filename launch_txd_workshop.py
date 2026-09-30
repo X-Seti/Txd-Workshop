@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 X-Seti - December14 2025 - Txd_Workshop 1.5 - Root Launcher
-#this belongs in root /launch_txd_workshop.py - Version: 1
+#this belongs in root /launch_txd_workshop.py - Version: 2
 """
 import sys
 from pathlib import Path
@@ -30,7 +30,7 @@ if __name__ == "__main__":
             
             app = QApplication(sys.argv)
             workshop = txd_workshop.TXDWorkshop()
-            workshop.setWindowTitle("TXD Workshop 1.5 - Standalone")
+            workshop.setWindowTitle("TXD Workshop - Standalone")
             workshop.resize(1200, 800)
             workshop.show()
             

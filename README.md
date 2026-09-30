@@ -2,7 +2,11 @@
 
 Standalone TXD (texture dictionary) editor for GTA III, VC, SA and other RenderWare games, synced from IMG Factory 1.6.
 
-## Run
+## Windows
+Download `Txd_Workshop_Windows.zip` from the `windows-build` release, unzip, run `Txd_Workshop/Txd_Workshop.exe`.
+Settings save in `settings/` beside the exe. Custom ribbon icons go in `icons/`.
+
+## Run from source
 ```
 pip install PyQt6 numpy Pillow
 python3 launch_txd_workshop.py
@@ -16,6 +20,7 @@ python3 launch_txd_workshop.py
 - Mipmap and bumpmap managers; flip, rotate, filters, paint editor (DP5).
 - Save as TXD with version selector; build TXD from DFF materials.
 - Ribbon Manager: move buttons, presets, custom icons from icons/.
+- Drag and drop .txd, .img or image files onto the window.
 
 ## Code layout
 | File | Job |
@@ -27,5 +32,6 @@ python3 launch_txd_workshop.py
 | apps/methods/txd_dialogs.py | Bumpmap, mipmap, properties, preview windows |
 | apps/methods/txd_dxt_encode.py | DXT1/DXT5 encoders |
 | apps/methods/ribbon_dialog.py | Ribbon Manager and custom icons |
+| apps/methods/grip_splitter.py | Grip splitter, saved pane sizes |
 
 X-Seti - IMG Factory 1.6
