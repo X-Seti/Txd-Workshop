@@ -1,4 +1,7 @@
-#this belongs in root /ChangeLog.md - Version: 36
+#this belongs in root /ChangeLog.md - Version: 37
+
+## Sep 30 2026 - Check DFF and Undo fixed
+- Check DFF / Build from DFF now read DFF texture names (rw_chunks); Undo button enabled and more actions undoable.
 
 ## Sep 30 2026 - Game controller, grip splitters, fixes
 - PS5 / game controller (Navigation ribbon): pan, zoom, texture pick, reset, flip, view mode, tabs. Exe bundles pygame.
