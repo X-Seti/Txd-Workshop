@@ -1,87 +1,2266 @@
-#this belongs in root /ChangeLog.md - Version: 41
+#this belongs in root /ChangeLog.md - Version: 219
 
-## Oct 05 2026 - More platforms
-- Xbox and PS2 edit/save (PS2 mipmaps), III iOS/Android UNC/PVR, LCS iOS PSP TXDs, VCS/LCS xtx/chk; working Save buttons; undo fixes. Build needs scipy.
+## Oct 05 2026 - Mobile texture DB save
+- VC/SA Android and iOS texdb (.dat/.toc/.tmb, DXT/ETC/PVR/UNC): edits saved via Save button; unedited saves byte-identical.
 
-## Oct 05 2026 - Save fixes
-- New TXD writer: all PC formats, III/VC and SA layouts kept, flags and renames saved, bumpmaps in a game-safe plugin, unsaved-changes prompt.
+## Oct 05 2026 - TXD platforms: mobile, PSP, Stories, PS2 mips
+- GTA III iOS/Android (War Drum UNC/PVR) TXDs: read, edit, save (PVRTC encoder, needs scipy).
+- LCS iOS PSP-native TXDs, VCS/LCS .xtx/.chk (PS2/PSP): read, edit, save in place.
+- PS2: mipmapped textures save all levels; swizzle detection fixed (LC HUD, VC MISC, SA/Bully small icons).
 
-## Oct 05 2026 - Sync from IMG Factory: icons
-- New Reset View, Convert Format, Compress/Uncompress, Rotate CW/CCW icons; theme and ribbon fixes; DP5 paint window update.
+## Oct 05 2026 - TXD undo
+- Rename, alpha rename, remove mipmaps, alpha import record undo before the change; history cleared on open/new/close.
+- Mipmap Manager (import/clear/delete/level import) and Bumpmap apply undoable; level export/import implemented. Docked hotkeys no longer clash with IMG Factory.
 
-## Oct 05 2026 - App-Settings-System dependency
-- apps/utils, themes, images now come from X-Seti/App-Settings-System; Windows build checks it out; README shows symlink setup.
+## Oct 05 2026 - PS2 TXD edits, Save button
+- PS2 (III/VC/SA/Bully/LCS) texture edits saved in place: palette rebuilt, GS swizzle kept. Size/format fixed; mipmapped PS2 not yet.
+- TXD Save buttons (title bar + panel) enable on edit and save to the open file; File menu Open/Close/Convert wired.
 
-## Sep 30 2026 - Save fix, multi-select, resize, Paint window
-- Ctrl+S keeps pixel edits; Shift/Ctrl multi-select edits; new Resize dialog; Paint opens DP5 in its own window; themed mipmap/bumpmap windows.
+## Oct 05 2026 - Xbox TXD read/write
+- methods/txd_platform_xbox.py v2: unswizzle, PAL8/PAL4 palettes, DXT1-5 codes; SA effects no longer blank.
+- Xbox textures can be edited and saved in any format (swizzled, power-of-two for uncompressed).
 
-## Sep 30 2026 - Check DFF and Undo fixed
-- Check DFF / Build from DFF now read DFF texture names (rw_chunks); Undo button enabled and more actions undoable.
+## Oct 05 2026 - Model/Map TXD save
+- Model and Map Workshop save TXDs through txd_splice (unedited textures byte-exact). Radar tiles too. Old txd_serializer.py removed (wrote invalid files).
 
-## Sep 30 2026 - Game controller, grip splitters, fixes
-- PS5 / game controller (Navigation ribbon): pan, zoom, texture pick, reset, flip, view mode, tabs. Exe bundles pygame.
-- Grip splitters in bumpmap window and DP5 docks; Paint loads via DP5 loader; Pick Background crash fixed.
+## Oct 05 2026 - TXD save fixes
+- New TXD writer (methods/txd_splice.py): all PC formats, D3D8/D3D9 kept, filter flags patched, PS2/Xbox renames, version convert re-encodes for III/VC.
+- Bumpmap/reflection stored in IMG Factory extension plugin; game-safe. Numpy DXT1/3/5 encoders with 1-bit alpha.
+- Loader: per-level size for all PC formats, palette read once. Unsaved-changes prompt; _set_current_rgba wrote wrong row.
 
-## Sep 30 2026 - Audit sync and Windows build
-- Dead code removed; menu, convert, upscale, settings and mipmap hang fixed; no emoji; grip splitter, compact buttons, drag and drop.
-- Windows exe build: txd_workshop.spec, GitHub Actions, settings/ and icons/ beside the exe.
+## Oct 05 2026 - TXD/COL icons
+- New icons: Reset View (rings with eye), Convert Format (red circle to green triangle), Compress/Uncompress (G-clamp closed/open). Used in TXD, COL, Asset.
 
-## Sep 30 2026 - Split layout, synced from IMG Factory
-- txd_workshop.py split into depends/ win, ui, logic mixins; shared windows, DXT encoders, Ribbon Manager in methods/.
-- Old copied depends/ modules, dockable_toolbar, Simple_Paint_Editor removed; README rewritten; personal paths removed from settings.
+## Oct 01 2026 - DP5 stickers
+- Stickers stamp at 20x20 px (aspect kept); background and white halo removed so round emojis have alpha edges.
 
-## July 2026 — Native QToolBar ribbon rebuild
+## Oct 01 2026 - COL Workshop menus and selection
+- Click a selected face or vertex again to deselect. Show Vertices toggle (red dots). New back-face icon.
+- Menu drop-down left of Settings lists every command; right-click menus get key tools and Edit Model. Surface Editor renamed Edit Model; missing tooltips added.
 
-**txd_workshop.py:**
+## Oct 01 2026 - Settings dialog layout
+- COL/TXD Workshop apply panel image and transparency at start-up and on theme change.
+- Apply Theme: separate tick box left of the label; Fonts one row each; Button style dropdown, tints in two columns; Panels: previews column plus background settings; Gadgets condensed; UI Management table rows with colour swatches.
+
+## Oct 01 2026 - Colour transparency
+- Colors tab: transparency column (0-100) for backgrounds, panels, ribbons, buttons, title bar, menus, selection, table rows, splitter, scrollbar, dialogs; saved with theme. Menu - Background colour added.
+
+## Oct 01 2026 - COL Workshop standalone file tabs
+- Dropping a COL on an open file offers Open in new tab standalone too; title bar drop-down (right of Settings) switches, opens and closes tabs. Docked uses IMG Factory tabs.
+
+## Oct 01 2026 - Theme image/transparency saved; Ribbon Manager hide and dividers
+- Panel image copied to images/ beside settings or theme JSON (relative path); effect, image and transparency keys saved in themes and loaded on theme change.
+- Show-through tint uses Transparency tab: Panels (lists, tabs), Widgets (toolbars).
+- Ribbon Manager: untick to hide buttons, Add/Delete Divider; order, moves, dividers and hidden buttons saved and restored.
+
+## Oct 01 2026 - COL from DFF, mono ribbon icons, panel image options
+- COL Workshop: COL from DFF (render mesh, LOD/damage parts skipped); surfaces from DFF texture names (grass, sand, wood, metal...).
+- Ribbon Manager: Mono icons option, saved per workshop.
+- Panel image: Across window mode (one image over all panels); optional show-through on lists, toolbars and tabs tinted by their colour.
+
+## Oct 01 2026 - Settings: panel background image
+- Panels tab image never drew on panels; now painted with mode and blend opacity. Panel effects use an event filter, so they apply live without restart.
+
+## Oct 01 2026 - COL Workshop: CE II features (Mesh ribbon)
+- Hide/unhide faces, selection lock (Space), select by material, Shift+drag region select (rectangle/circle, crossing/window).
+- Copy as LOD, mesh from shadow, clear parts, delete isolated vertices, optimum bounds.
+- Face groups read/write/generate/show; lighting generator and light view; VC to SA materials.
+- Duplicate check, batch conversion; CST/3DS/X/DFF import, CST2 export, attach COL to DFF (new methods/col_exchange.py).
+- CE II toolbar images in icons/ for the Ribbon Manager.
+- CE II tools split into toolbars: Select, Mesh, Face Groups, Lighting, Convert, Exchange.
+
+## Sep 30 2026 - COL vertex editing
+- Vertex mode: click, Ctrl+click, drag box select; gizmo move/rotate/scale on selected vertices; controller too.
+- Vertex tools: position dialog (absolute/relative), create face, delete (Del), weld, mirror, select all/none/invert, faces inside.
+- Split Selected Faces adds a centre vertex.
+- Unique SVG icons for vertex/face tools, surfaces, shadow mesh, conversions, render mode, merge, select none.
+
+## Sep 30 2026 - TXD multi-select, resize, Paint window, Build 431.105
+- Shift/Ctrl select several textures: flip, rotate, resize, colour adjust, seamless, snow, alpha coverage apply to all; one undo step; mip levels rebuilt.
+- Resize dialog: current size above, width/height together, keep ratio, power of two, presets. Old resize scaled with the wrong size.
+- Paint opens DP5 as its own custom window (no system frame) with Apply/Cancel.
+
+## Sep 30 2026 - TXD controller, grip splitters, DP5 docks, Build 431.105
+- TXD game controller (Navigation ribbon toggle, saved): left stick pan, L2/R2 zoom, D-pad texture, Circle reset, Square flip, Triangle view, L1/R1 tab.
+- TXD Paint loads texture via DP5 _load_rgba (size, palette, bitmap list).
+- TXD Pick Background crashed when no colour set yet; starts from theme colour.
+- TXD/Asset Check DFF and Build from DFF found no materials; now read DFF texture names via rw_chunks.
+- TXD Save (Ctrl+S) wrote the original DXT data back, dropping pixel edits; now splices like Save As, mip levels rebuilt. New TXDs save (no placeholder encoder). Version convert wrote into the size field.
+- Mipmap/Bumpmap windows follow the theme (hard-coded styles removed); bumpmap no longer shown Present when empty.
+- TXD Undo: title bar button was never enabled; delete, rename, duplicate, paste, create, format, upscale, mipmaps, bumpmap import now undoable; selection kept.
+- Grip splitters: bumpmap window, DP5 ribbon manager, SVG icon browser; DP5 dock separators show the grip (GripDockSeparators).
+
+## Sep 30 2026 - TXD audit: dead code, bugs, COL features, Build 431.105
+- Removed 45 dead TXD methods/aliases/stubs; hotkeys wired directly; Help F1 opens TXD info.
+- Fixed: double right-click menu, Convert/Upscale/Save As menu items, settings never saved, Auto-Generate mipmaps hang (TXD, Asset), Black/White background.
+- Emoji, ticks, arrows removed; mipmap/bumpmap buttons use SVG icons.
+- TXD gets COL features: grip splitter with saved sizes, compact mini toolbar, Windows frame fix, xcb block, drag and drop (.txd/.img/images).
+- Splitter save/restore shared: SplitterSizesMixin in methods/grip_splitter.py (COL and TXD).
+
+## Sep 30 2026 - TXD App_name tidy, Build 431.105
+- TXD titles/messages use App_name (one definition, txd_ui_func); build 39; empty section markers removed; error message f-strings mended.
+
+## Sep 30 2026 - TXD Workshop split, shared ribbon/texture code, Build 431.105
+- TXD Workshop split: depends/txd_win_func, txd_ui_func, txd_logic_func mixins; main keeps init, settings, docking, help, theme, tabs.
+- New methods/ribbon_dialog.py: one Ribbon Manager + custom icons for COL, TXD, Model, Map, Asset (5 copies removed).
+- New methods/txd_dialogs.py, txd_dxt_encode.py: bumpmap/mipmap/properties/preview windows and DXT encoders shared by TXD and Asset.
+- TXD/Asset _create_*_icon wrappers replaced by SVGIconFactory icons; dead _ensure_depends_structure, _call_external_upscaler removed.
+- TXD settings json moved to user config dir; Asset Integrity Check no longer crashes with nothing loaded.
+
+## Sep 30 2026 - COL custom ribbon icons, Build 431.105
+- Ribbon Manager: Set Icon / Reset Icon per action from root icons/ folder; saved in col_workshop.json, kept on theme change, included in presets.
+
+## Sep 30 2026 - COL mesh optimise, Build 431.105
+- Optimise Mesh (Edit ribbon, face menu): Clean (lossless), Merge flat areas, Decimate (lossy); selected or all models, undo. SA test: 6613 to 4233 faces.
+- Default last_img_output_path blanked (was /home/x2).
+
+## Sep 30 2026 - COL PS5 controller, Build 431.105
+- COL viewport game controller (Edit ribbon toggle, saved): Map Workshop layout; Cross select/grab, left stick moves selection, right stick orbit, L2/R2 zoom, Triangle mode, L1/R1 axis.
+- Undo re-selects its model; Move/Rotate/Scale chip widened.
+
+## Sep 30 2026 - COL edit tools, Build 431.105
+- Gizmo moves/rotates/scales selected faces (whole model if none), arrows and rings clickable, undo, bounds rebuilt; S = scale gizmo.
+- New Edit ribbon + face menu: detach, selection to model/COL (copy or move), delete, vertex mode + weld, fill hole, box/sphere to mesh and back, scale, centre, merge COL files.
+- New methods/col_mesh_ops.py (shared geometry) and depends/col_edit_func.py (COLEditMixin).
+
+## Sep 30 2026 - COL shadow mesh, ghost fills, dead code, Build 431.105
+- COL3 shadow mesh now read, drawn (View toggle, magenta), created, removed, undone, saved; lines and flags kept on fresh writes (574 SA models verified).
+- Edits that change counts now save (fresh record) instead of refusing.
+- Spheres/boxes drawn with translucent ghost fill.
+- Removed duplicate mesh editor methods, no-op panel method, placeholder settings tab; shadow_verts renamed shadow_vertices.
+
+## Sep 30 2026 - COL face picking, Build 431.92
+- COL viewport _pick_face: click anywhere inside a face (topmost wins); was centroid within 20px only.
+
+## Sep 29 2026 - Windows 11 frame, Build 431.92
+- New apply_windows_frame (imgfactory_ui_settings): removes white DWM border on frameless windows, rounded corners. Used by COL Workshop standalone.
+
+## Sep 29 2026 - Exe settings default, Build 431.92
+- Exe builds: appfactory.settings.json and IMG Factory app settings live in settings/ beside the exe; bundled file copied as default on first run.
+
+## Sep 29 2026 - Portable settings for exe builds, Build 431.92
+- New img_factory_settings.get_user_config_dir: exe builds save tool settings in settings/ beside the exe; source runs keep ~/.config/imgfactory. 26 files switched.
+
+## Sep 29 2026 - Windows start fix, Build 431.92
+- xcb/opengl env forced on Linux only: col, model viewer, AI, DP5, map, model, radar, vehicle workshops. Windows builds now start.
+
+## Sep 29 2026 - COL Workshop split into mixins, Build 431.92
+- col_workshop.py keeps init, settings, docking, help, theme, tabs; rest in depends/ col_win, col_setup_ui, col_core_logic, col_list, col_paint, col_viewport.
+
+## Sep 29 2026 - COL Workshop UI, Build 431.92
+- New methods/grip_splitter.py: ribbon-style splitter grips; splitter sizes saved; list pane 220px default.
+- Compact icon-only buttons: Surface Data tab, mesh editor. GL toggle icon fixed.
+- Ticks, crosses, arrows replaced by SVG icons; emojis removed from COL logs.
+
+## Sep 29 2026 - COL Workshop fixes, Build 431.92
+- Mesh/surface editor, duplicate, copy used hidden list; now use selected model.
+- Hotkeys wired (copy, paste, delete, duplicate, import, export); invert Ctrl+Shift+I; F1 help.
+- Save As, export selected, import, find, details, close tab wrappers fixed; name field rename saves.
+- Damaged COL records counted on load; save asks first.
+- unified_menu deactivate_tool: removes action before menu is freed (QAction deleted error).
+- AI_Rules.md: rules 20-26 workshop layout.
+
+## Sep 28 2026 - COL convert surface table, Build 431.92
+- Convert dialog lists used surfaces with editable GTA3/VC <-> SA target. SA originals restored on converting back. Windscreen piece flag mapped (SA 19 / VC 17).
+
+## Sep 28 2026 - COL version convert saves, Build 431.92
+- Convert (COL1/COL2/COL3) was lost on save (original record reused); now written fresh. Optional GTA3/VC <-> SA surface remap (col_materials.convert_material_id).
+
+## Sep 28 2026 - COL drop onto open file, Build 431.92
+- Dropping .col on a COL Workshop with a file open asks: Add to current (models appended, unsaved) / Open in new tab / Cancel. Before it replaced the open file.
+
+## Sep 28 2026 - COL drag and drop, Build 431.92
+- COL Workshop accepts dropped .col/.img: first opens there (tab renamed), others open in new COL Workshop tabs.
+- Main window drop with no IMG tab active now opens files instead of doing nothing; garbled log prefixes removed.
+
+## Sep 28 2026 - SA COL tested, Build 431.92
+- Tested all COL in GTA SA gta3.img/gta_int.img (251 archives, 10,155 COL2/COL3 models): load, unedited save identical, edits kept, fresh write reparses.
+- Loader resyncs one byte back on misaligned records (SA peds.col: 26 of 30 models, was 6).
+
+## Sep 28 2026 - One set of COL classes, Build 431.92
+- col_core_classes, COL_Parser, COL_Materials, col_parsing_helpers, col_structure_manager, col_preview_generator removed; all tools use col_workshop_classes/loader. Old parser misread COL1 boxes/mesh.
+- COLFile.save_to_file/to_bytes added; renames now saved; SA sphere patch order fixed; single-model export writes valid COL.
+- Vector3 mutable + indexable: gizmo moves loaded spheres/boxes. COL Mesh Editor opens (missing _btn). Build COL from TXD stubs fixed.
+
+## Sep 28 2026 - COL table code merged, Build 431.92
+- methods/populate_col_table.py is the one COL table module (shared row builder). Removed col_functions, col_loader, col_parsing_functions, gui/col_display, col_workshop_structures.
+- COL/Model/Map "replace model" now refreshes their own model list.
+
+## Sep 27 2026 - COL/DFF depends copies merged, Build 431.92
+- Removed 13 depends/ copies of COL/DFF modules; all workshops import apps/methods/ (old copies had COL\x02 fourcc bug, no splice save).
+- COL writer rewritten to match parser: COL1 order, COL2/3 offset table, spheres/boxes surfaces. COL2/3 spheres read center-first.
+
+## Sep 27 2026 - Shared button mode, Build 431.92
+- New methods/button_mode.py; TXD, Asset, Map, COL use it. COL Workshop Button Display change no longer crashes. Dead TXD _apply_button_mode removed.
+- Model/Map: f-string fixed so files parse on Python 3.11.
+
+## Sep 26 2026 - Broken calls and _get_ui_color copies, Build 431.92
+- 31 _get_ui_color copies now use methods/ui_color.py; fixes DP5 Character/Font Editor crash (WindowTesco typo).
+- DP5 batch Amiga .info export works (_encode_amiga_info with palette modes); dead font copies in _SpriteEditor removed.
+- Model/Map: Button Display menu, COL entry click in left list fixed. DAT Browser split icon sync fixed.
+- Removed dead code: gui_layout_custom (16 methods), radar menu, GUIBackend button, TXDSerializer parser, Map depends svg_icon_factory.
+
+## Sep 26 2026 - Model/Map dead viewport removed, Build 431.92
+- Removed unused COL3DViewport copies in Model and Map workshops (~3,800 lines) and gui_layout_custom placeholder.
+- Model select no longer errors on COL models; removed duplicate depends/txd_parser.py copies.
+
+## Sep 26 2026 - TXD/Asset Workshop broken calls, Build 431.92
+- Bumpmap Manager opened with crash (missing middle panel); reflection maps never generated; closing it removed TXD tool menu. Fixed.
+- Fixed Ctrl+O/Open TXD, bumpmap import, XTD open, Button Display menu; dead level-card copies removed.
+
+## Sep 26 2026 - Tab switch handler, Build 431.92
+- setup_tab_system no longer disconnects _on_tab_changed; tool menu, status bar and taskbar sync on tab switch again.
+- Restored _import_col_data in COL, Model, Map workshops (removed as dead; Tool menu Import COL crashed).
+
+## Sep 25 2026 - Smart IPL conversion, Build 431.92
+- INST lines classified by content (III, VC, SA, interior-before-name, extra field); convert any to VC/SA/LC; Repair lines; parser reads swapped lines.
+
+## Sep 25 2026 - IPL Format Checker, Build 431.92
+- New IPL Format Checker (IPL list menu / Convert menu): layout, scale 0/1 counts, interiors, bad lines; Scale 0->1, 1->0, Fix SA for VC, Fix VC for SA with backups.
+
+## Sep 25 2026 - SOL SA objects invisible, Build 431.92
+- Converted IPLs store scale 0,0,0 ("no scale"); viewport drew them at zero size. Now drawn at 1,1,1; file data unchanged.
+
+## Sep 25 2026 - Parallel load hang, Build 431.92
+- Parallel IPL load could hang waiting on workers; now polls with UI kept alive, and if workers go silent for 20s they are stopped and the rest parse in-process.
+
+## Sep 25 2026 - File tab limit, Build 431.92
+- Tab bar shows the 5 most recent IMG/COL tabs at full width; the rest in Files dropdown. Workshop tabs always shown. Tab switch now syncs taskbar.
+
+## Sep 25 2026 - Parallel model loading, Build 431.92
+- IPL loads parse DFF/TXD in worker processes; new Map setting "Parallel load workers" (Auto = cores - 2, 1 = one at a time).
+
+## Sep 25 2026 - One IPL load dialog, Build 431.92
+- Single, multi-select and Load Options IPL loads share one dialog: file bar, Files i/N, per-model progress and texture count, messages, 5s timed close with Keep open.
+
+## Sep 25 2026 - IPL progress, file tabs, intro icons, Build 431.92
+- Map: IPL load shows per-model progress; loading windows paint first.
+- 5+ open files: compact tabs, Files dropdown, taskbar IMG+ group.
+- Intro page uses each tool's own icon.
+
+## Sep 25 2026 - Map gizmo crash, Build 431.92
+- Selecting an object crashed Map Workshop: footprint outline unpacked 2 of 3 cached values.
+
+## Sep 25 2026 - Button audit complete, Build 431.92
+- All toolbar, right-click and workshop buttons exercised in test; remaining crashes fixed (DP5 menus/font picker, settings handle options, IMG Browser undo).
+
+## Sep 25 2026 - Workshop button audit, Build 431.92
+- Every workshop button clicked in test: fixed COL Save/Export/Create before load, Model Toggle Shading and paint exit, Vehicle LOD/Wheels/Cols, Master IDE Save/Add/Relocate.
+- MapSettings singleton no longer overrides __new__ (segfaults on PyQt 6.11).
+
+## Sep 25 2026 - More undefined names, Build 431.92
+- col_loader typing import broke COL threaded loading; settings hero label; dead code in settings drag area, radar, handling editor.
+
+## Sep 25 2026 - Right-click menu, Build 431.92
+- DFF Model Info shows real frames/geometry/textures; IDE View Definitions and COL Analyze now work (were "not available").
+
+## Sep 25 2026 - Button audit fixes, Build 431.92
+- Radar, Vehicle, Paths, Model Viewer failed to open (unused requests import); IDE editor crash (QWidget) and open_ide_editor override clash; IPL taskbar icon.
+
+## Sep 25 2026 - Crash fixes, core cleanup, Build 431.92
+- Fixed: Batch Rebuild thread, extraction menu setup, IMG Browser batch sort, pin entries, info bar, icon browser, ValidationResult, IMG load thread imports.
+- Removed unused GUI classes from img_core_classes and 3 unused modules.
+
+## Sep 25 2026 - Theme colour crashes, Build 431.92
+- New methods/ui_color.py get_ui_color; Model Workshop, TXD/Asset preview, grip handle, Missing TXD dialog, DP5, MUI widgets lacked _get_ui_color.
+- COL mesh editor failed to import; DAT taskbar icon; broken warning icon.
+
+## Sep 25 2026 - Toolbar button fixes, Build 431.92
+- File List, Merge View, Search and Refresh buttons crashed (undefined names); now wired. Removed junk edit_veh_file and duplicate _create_toolbar fragment.
+
+## Sep 25 2026 - TXD Workshop fixes, Build 431.92
+- TXD Workshop: ~1,700 dead lines removed; Texture Properties dialog crash, titlebar menu crash, settings log crash, mipmap typo fixed.
+- Removed no-op img_integration.py and dead highlight code.
+
+## Sep 25 2026 - Dedupe context/menu functions, Build 431.92
+- imgfactory: 1,600 dead lines removed; menu/rename/file-op functions now only in gui_context; comprehensive.py (duplicate) deleted.
+- get_selected_entry_info tab-aware; open dialog uses core/open.py.
+- Removed 12 unused modules; quick export, reload, file extraction imports fixed.
+
+## Sep 24 2026 - Unused modules, IMG core leftovers, Build 431.92
+- Removed 19 unused/duplicate modules incl. gui/main_window.py, File_Browser/; gui/__init__ emptied.
+- Convert IMG Format was overridden by a broken copy; now uses core/convert.py.
+- replace/convert: missing tab_system import added; dead IMG_Editor core branches removed.
+
+## Sep 24 2026 - IMG Factory imports, Build 431.92
+- Export Via, Quick Export, Dump, Import Via, Remove Via pointed at real core modules; removed shadowed open_file_dialog and 2 unused setup methods.
+
+## Sep 24 2026 - Map/Model Workshop imports, Build 431.92
+- Texlist TXD browse/add and Save TXD used missing functions; now txd_parser / serialize_txd_file.
+- Build COL from DFF rewritten with real COL classes (was crashing).
+
+## Sep 24 2026 - COL Workshop cleanup, Build 431.92
+- Removed ~2,100 dead lines (old COLEditorDialog, unused methods); settings dialog crash fixed (coll_form, Apply widget names); emojis removed.
+
+## Sep 24 2026 - Context menu imports, Build 431.92
+- gui_context: removed 3 duplicate COL functions, now imports shared ones; fixed 16 "from gui" imports.
+- Removed duplicate get_selected_entry_info, view_txd_textures, col_workshop_display.py.
+
+## Sep 24 2026 - Map Workshop: IPL Object Editor, SOL VC IPLs, Build 431.92
+- IPL Object Editor now a plain window; floating dock came up black on Wayland.
+- SOL: IPLs with 13-field inst lines parsed and saved in VC layout, cull too.
+
+## Sep 24 2026 - Import fixes, Build 431.92
+- Fixed 9 broken import paths; col_operations moved to methods/ with 5 missing functions added.
+- COL editor calls repointed to COL Workshop; col_dialogs emojis removed, QWidget import added.
+
+## Sep 24 2026 - Components: removed 53 unused duplicate files, Build 431.92
+
+COL 37, TXD 6, Vehicle 5, File_Editor 2, Asset / Dat / Master IDE 1 each. Nothing imports them; live code uses apps/methods and apps/core copies.
+
+## Sep 24 2026 - Model_Editor: removed 33 unused files, Build 431.92
+
+31 unused depends/ copies, plus unused model_mesh_editor.py and saved.py fragment. All Model_Editor imports resolve.
+
+## Sep 24 2026 - Model Workshop: dead code removed, settings dialog crashes fixed, Build 431.92
+
+~2,950 unreachable lines removed (old COL editor leftovers, unwired stubs, shadowed duplicate methods, unused imports).
+
+Settings dialog (Preferences key) crashed: coll_form typo, Apply read seven widgets that do not exist; fixed to the real shadow checkboxes. Status bar and light-preset icon size undefined names fixed.
+
+## Sep 24 2026 - Model Workshop: keep opened models, Build 431.92
+
+Opened IMG models get an open icon; clicking swaps back without reparsing. Right-click: Close model / Close all, Save / Cancel / Close prompt when changed.
+
+Save of an IMG-opened DFF now also writes back into its IMG entry (was temp file only). open_dff_file split into parse + _show_dff.
+
+## Sep 24 2026 - SCM Workshop: rule cleanup, Build 431.92
+
+Removed local icon fallback class and bare except (rule 11), tick emoji and arrow glyph (rule 4), duplicate and unused imports; standard file header.
+
+## Sep 24 2026 - Hex Workshop: RW Analyze parity, Build 431.92
+
+Struct field editor (Clump, Frame List, Geometry, Material, Texture, Atomic, Material List, TXD, Texture Native) via new methods/rw_structs.py. Move section up/down, add empty section, rename String / Texture / Texture Native.
+
+Find section by type. Hex cursor selects matching tree node. rw_chunks: move_section, make_section, replace_payload, string_payload, node_at; 0x510 named Native Data PLG.
+
+## Sep 24 2026 - Map_Editor: removed 46 unused files, Build 431.92
+
+44 unused depends/ copies of methods/ files, plus unused dockable_toolbar.py and model_mesh_editor.py. Import check passes; recoverable from git history.
+
+## Sep 24 2026 - Map Workshop: prelight bake to DFF, Build 431.92
+
+Viewport right-click > Bake Prelight: ambient + sun colour, azimuth / elevation, strength (new depends/map_prelight.py). Sun turned into each model's space by its placement.
+
+Only DFFs that already carry prelit colours are baked; written via dff_patch into the IMG entry (archive backed up), undoable.
+
+## Sep 24 2026 - Map Workshop: IDE raw-line editing for all sections, IDE edits in save points, Build 431.92
+
+Object Editor IDE line shows the real file line; any section (objs, tobj, cars, peds, hier, 2dfx...) editable. Parsed with IDEParser, model ID locked, undoable, written with ID check and original line ending.
+
+Save points and mod package export include pending IDE edits. Removed field-position IDE writer (replaced).
+
+## Sep 24 2026 - Map Workshop: game controller, edge snapping, Build 431.92
+
+New methods/gamepad_input.py (pygame SDL GameController, PS5/PS4/Xbox). Settings > Navigation enables it. Right stick orbit, L2/R2 zoom, left stick pan or move grab, Cross select/grab/drop, Square add, Circle cancel.
+
+Triangle Move/Rotate, L1/R1 constraint, D-pad Z / 15 deg, Options edge snap, Create duplicate, touchpad drop to ground, L3 fine. Centre reticle.
+
+Edge snap now works: side-to-side, stack on top/under, centre-to-centre via model bounding boxes; snapped neighbours outlined green, rumble on contact. pygame added to requirements.
+
+## Sep 24 2026 - Map Workshop gizmo: chips, move/rotate modes, arrowheads, footprint, height line, Build 431.92
+
+Floating chip bar: Move / Rot, X / Y / XY / Z, height label. W / E modes, Tab / Shift+Tab constraint. Drag selected object body under constraint.
+
+Rotate mode shows one ring. Solid cone arrowheads. Dashed footprint outline (convex hull, cached). Height line to ground.
+
+## Sep 23 2026 - Map Workshop: diff view, mod package export, camera bookmarks, Build 431.92
+
+Show Changes: per-IPL changed / added / removed objects vs last load/save or any save point. Export Mod Package: changed and saved IPL / IDE / stream files, game-relative, readme + zip (new depends/map_workflow.py).
+
+Camera bookmarks: Ctrl+Shift+1..9 save, Ctrl+1..9 go, per world; rename/delete from IPL menu. Map Checks limits now persist (added settings keys).
+
+## Sep 23 2026 - Map Workshop: script placements, engine load log, partial radar regen, Build 431.92
+
+New methods/scm_placements.py: finds CREATE_OBJECT / PICKUP / PICKUP_WITH_AMMO / CAR_GENERATOR in main.scm (III / VC / SA). Viewport pins, click centres, opens SCM Workshop at the opcode (new goto_offset).
+
+Engine Load Log: DAT / IDE / IPL / stream replay with filter and export. Radar right-click: regenerate only tiles touched by unsaved edits.
+
+## Sep 23 2026 - Map Workshop: convert IPL game format, rebase area, Build 431.92
+
+IPL right-click > Convert to Game Format: inst section in III / VC / SA layout; reports dropped sections, scale (to SA), LOD indices (from SA).
+
+Rebase Area: shift + Z rotate selected IPLs about a pivot (undoable), optionally export converted copies to a folder.
+
+## Sep 23 2026 - Map Workshop: Map Checks dialog, Build 431.92
+
+New depends/map_checks.py. Tabs: LOD links (broken / non-LOD targets, clear broken undoable), IDE IDs (duplicates, multi-ID names, free ranges), missing DFF/TXD/COL, instance and model-ID limits (editable).
+
+Save All warns about broken LOD links in IPLs being saved. Opened from IPL list right-click > Map Checks.
+
+## Sep 23 2026 - Map Workshop: duplicate, rotate rings, multi-select, drop to ground, align, place, Build 431.92
+
+Ctrl+D duplicates selection (clones appended to same IPL). Rotate rings on gizmo (Ctrl = 15 deg steps). Shift+click / Shift+drag box multi-select; gizmo moves and rotates all.
+
+End drops selection onto collision below. Align to last selected, distribute evenly (viewport right-click). Delete key removes selection, re-pointing SA LOD indices.
+
+Drag a model from Object Browser into viewport to place it; Add Instance now uses a real IPL at view centre. Fixed Ctrl+D clash with Open DFF.
+
+## Sep 23 2026 - Map Workshop: move gizmo, editable IPL/IDE lines, IDE write-back, Build 431.92
+
+Viewport gizmo: Ctrl+click object to drag it; click X/Y/Z arrow to drag along that axis; centre dot = free move. Esc cancels. Undoable, snap-to-centre honoured.
+
+Object Editor: IPL and IDE lines now editable; Apply is undoable; Save writes this object's IPL and IDE line.
+
+IDE write-back (objs/tobj): only changed fields rewritten in place, comments and spacing kept, backup first. Included in Ctrl+S and unsaved reminders.
+
+Fixed dead set_gizmo_position call in _center_on_instance.
+
+## Sep 23 2026 - Map Workshop: unsaved change tracking, Save All, save points, Build 431.92
+
+Changed IPLs (instances, paths, zones, culls, occlusion, garages, enex, auzo) shown bold orange; changed instances orange in Instance List.
+
+Ctrl+S / Save saves all changed IPLs to their original files; model save when no IPL changes. Removed duplicate Ctrl+S shortcuts.
+
+Unsaved reminder on close, quit, tab close, world reload, unload. New confirm_close() hook in tab_system and imgfactory.
+
+Save points: snapshots of unsaved edits (depends/map_changes.py), manual or timed via Settings > Save Points; restore is undoable.
+
+## Sep 23 2026 - Map Workshop: dead code removed, Save IPL, radar tile fix, Build 431.91
+
+Removed ~4,600 unreachable lines from map_workshop.py (125 methods/classes, old COL editor leftovers, unused imports).
+
+New Save IPL: writes edits back to original text IPL, loose binary IPL, or SA binary stream inside IMG (backup first). Binary save refused if parked cars present.
+
+Save Text as Binary IPL menu shown for SA only. Save As builder split into _build_ipl_text_lines.
+
+Radar tile capture: pixel-exact square ortho crop; fixes stretched, repeating tiles on non-square or HiDPI viewports.
+
+## Sep 23 2026 - Workshops: no corner handles or corner resize when docked, Build 431.91
+
+_get_resize_corner returns None when docked: AI, Asset, COL, DP5, Map, Model, Model Viewer, Radar, TXD, Vehicle. Corner triangles now standalone only in AI, Asset, COL, TXD.
+
+## Sep 23 2026 - gui_workshop: no corner handles when docked, Build 431.91
+
+Corner overlay and corner resize now standalone only. Affects all GUIWorkshop tools: Breakable, Handling, Hex, IPL, Timecyc, Vehicle, Water.
+
+## Sep 23 2026 - Hex Workshop app icon, right bar button, Build 431.91
+
+New get_hex_workshop_icon: intro card, right bar icon mode, standalone window icon. Right bar Notepad placeholder replaced by Hex (opens docked Hex Workshop).
+
+## Sep 23 2026 - Hex Workshop: resizable panes, splitter sizes saved, Build 431.91
+
+Long labels no longer force pane minimum widths, so panes resize instead of snapping. Splitter sizes saved to ~/.config/imgfactory/hex_workshop_splitter.json.
+
+## Sep 23 2026 - Hex Workshop: bug fixes, dead code removed, Build 431.91
+
+Docked mode: main_window now reaches base class. Revert icon uses get_refresh_icon. Binary IPL reads header offsets. Single replace is one undo step.
+
+RW tools disabled for non-RW files. Added import/paste section as first child. Tree click tints the section in hex view.
+
+Removed unused aliases (HexViewWidget, StructureView, HexEditorDialog), _goto_offset, select_range, unused imports, dead diffcode flags.
+
+## Sep 12 2026 - Fix real ID-shift engine gaps: anim scope + 2dfx write-back, Build 430.90
+
+Two serious bugs caught by Keith's own complete worked example
+(objs+tobj+anim+2dfx+IPL, +1000 shift). 1) anim was invisible to
+every shift/collision function - new _ID_DECLARING_SECTIONS (broad,
+collision detection) vs _MOVABLE_SECTIONS (objs/tobj/anim, the only
+ones persistable) fixes every plan_*/apply_* function; a hier/cars/
+peds/weap entry inside a shift range is now a refused conflict, not
+silently ignored. New _format_anim_line - real verified 6-field
+format. 2) 2dfx never actually got rewritten to disk during ANY
+cascade - the in-memory update was always discarded at write time
+since 2dfx uses raw-passthrough. New cascade_2dfx_sections (same
+surgical substitution as IPL cascading) + apply_id_shift_and_write
+centralizing apply+write+cascade, used by every apply_* function
+and every dialog call site.
+
+Verified against Keith's own EXACT worked example through the real
+dialog call path - byte-for-byte match after a +1000 shift.
+
+## Sep 12 2026 - IMG/COL reorder: include anim/hier/cars/peds/weap, Build 429.90
+
+build_id_by_name only scanned objs/tobj, missing sections that
+declare a real model_id+name with its own DFF (anim/hier/cars/peds/
+weap). Now scans every section except 2dfx/txdp. Confirmed DFF
+physical position has no effect on TXD assignment (name-based, via
+IDE's own txd_name - module has no txd_name path at all). Verified
+against real SFs.ide: BS_building_SFS maps to real ID 10744.
+
+## Sep 12 2026 - IMG/COL physical reorder - final Master IDE plan step, Build 428.90
+
+No new binary-writing code - checked directly that IMGFile.save_
+img_file() (both Version 1 and 2) and COLFile.save_to_file()
+already rebuild from whatever order self.entries/self.models holds
+and read all data into memory before opening for write. plan_img_
+reorder keeps TXD entries at their exact positions, only reorders
+DFF by matched ID. plan_col_reorder reorders every model. New
+IMGColReorderDialog (mandatory Preview before Apply, backup before
+write). Assumptions made without fresh confirmation from Keith -
+flagged plainly, open to correction.
+
+## Sep 12 2026 - Master IDE: real drag-move UI, Build 427.90
+
+New _MasterIDETable - Qt's own InternalMove handles press-hold-drag
+UX; dropEvent redirects to plan_splice_move instead of a physical
+row shuffle. New validate_contiguous_selection (pure logic) refuses
+scattered/mixed-section selections outright. Verified: all 5
+validator cases correct, full end-to-end drop simulation against
+real sparse data matches expected final state exactly.
+
+## Sep 12 2026 - ID engine: splice-move backend, Build 426.90
+
+plan_splice_move: real drag-move op - moving a block displaces
+whatever it sweeps through by its own size. Provably conflict-free
+by construction. Reuses apply_id_shift, no new apply function.
+Verified EXACT match against Keith's own real screenshot example
+(12918-12927 -> 12910) - every entry lands precisely right.
+Symmetric downward case and overlap-rejection also verified.
+
+## Sep 12 2026 - Master IDE: source-file change marker, Build 423.90
+
+New divider row inserted whenever Source IDE changes between
+consecutive ID-sorted rows within a section - shows exactly where
+one file ends and another begins, even if interleaved by ID.
+Verified against real 3-file data: markers land at each file's
+real first ID.
+
+## Sep 12 2026 - Asset Workshop: fix ID sort bug, add text report exports, Build 422.90
+
+Real bug: Cross-Reference ID column sorted as text (10000 before
+1001). New _NumericSortItem for that column only. New "Export to
+File..." on diff popups + "Export Full Report..." writing every
+real IMG/COL/IDE mismatch to one text file. Also fixed a real
+latent bug this surfaced: QFileDialog used in 3 places without a
+module-level import - invisible to syntax-only checks, scanned the
+whole file for the same pattern, confirmed the other 3 Q* names are
+all correctly locally imported.
+
+## Sep 12 2026 - Asset Workshop: fix wrong "always gta3.img" assumption, Build 421.90
+
+Real correction from Keith's uploaded gta_sol.dat: SOL loads 14
+separately-named archives via CDIMAGE, never a single gta3.img -
+explained the near-total "Missing in COL" flood in the screenshot.
+New collect_img_paths_from_dat; find_game_asset_files/check_assets
+now handle a real list of IMG archives, not a guessed single path.
+New img_paths field. Fixed 3 call sites that assumed a single real
+path. Verified directive parsing against the real uploaded .dat -
+all 14 IMG + 12 COLFILE directives found correctly.
+
+## Sep 12 2026 - Asset Workshop: check the .dat's own COLFILE directive, Build 420.90
+
+find_game_asset_files never checked dat.col_entries() (COLFILE
+directive) - only standalone sibling files and embedded IMG
+entries. GTA3/VC declare shared collision (generic.col) this way.
+New collect_col_paths_from_dat mirrors the IPL/IDE versions; now
+merges all three real COL sources.
+
+## Sep 12 2026 - DAT Browser: autoload last-used game_root/profile, Build 419.90
+
+Real bug: DAT Browser always opened empty despite the app already
+knowing game_root. New _autoload_last_profile mirrors imgfactory.
+py's own directory-tree autoload resolution order, calls the
+already-existing load_from_game_root(). CAVEAT: no PyQt6/real
+settings file in this sandbox - verified by code review only.
+
+## Sep 12 2026 - New: TXD near-duplicate detection + size mismatch, Build 418.90
+
+txd_dedup.py: texture-NAME-set comparison, no pixel decoding.
+find_near_duplicate_txds flags pairs differing by <= max_diff names
+(sharing >=1). cluster_near_duplicate_txds groups via transitive
+closure. find_same_name_size_mismatches flags a name with >1 real
+size across TXDs. Never touches reference counts (gtaiii.txd x40 is
+unrelated). Verified against Keith's own real example - 3-way
+cluster forms correctly via transitivity even when the two ends
+don't directly pairwise-match.
+
+## Sep 12 2026 - ID engine: 5 more use cases, Build 417.90
+
+find_free_id_gaps, plan_compact_all_gaps (single holistic pass,
+conflict-free by construction), plan_swap_ids (reuses apply_id_
+shift), find_usages (includes 2dfx deliberately), collect_ipl_
+paths_from_dat (mirrors the IDE version, auto-populates ID Shift's
+IPL list). Verified against real+synthetic gap data.
+
+## Sep 12 2026 - ID engine: batch prefix/suffix rename, Build 416.90
+
+plan_prefix_suffix_rename/apply_prefix_suffix_rename: prefix/suffix
+over a range or arbitrary selection. Checks external name collision
++ internal batch duplicates. Bug found+fixed: external check was
+comparing against batch members' stale pre-rename names, a false
+positive - now excludes batch members from that check. Verified:
+clean, real external collision, false-positive fixed, genuine
+internal duplicate.
+
+## Sep 12 2026 - ID engine: insert-and-relocate a foreign file with name check, Build 415.90
+
+plan_insert_relocation/apply_insert_relocation: relocate an already-
+loaded file's entries (e.g. from a different game) onto a sequential
+target range. Two independent checks: target ID not used elsewhere,
+AND incoming model name doesn't already exist anywhere else - two
+games' IDE files can reuse common names even once IDs don't clash.
+Reuses apply_id_shift for the actual cascade. Verified: name
+collision blocks correctly even with zero ID conflicts, id-range
+collision caught independently, clean case applies correctly.
+
+## Sep 12 2026 - ID engine: Add ID, Remove free ID, Delete ID, Build 414.90
+
+plan_add_ids/apply_add_ids: reserve N free slots after an ID by
+shifting everything above it up by N. plan_collapse_free_ids/apply_
+collapse_free_ids: scan+shift only genuinely free slots, refuses on
+first real assigned entry, caller can retry with just the free
+count found. plan_delete_and_collapse/apply_delete_and_collapse:
+explicit escalation, deletes assigned entries then collapses.
+
+Bug found+fixed: apply_id_shift crashed on any file lacking a tobj
+section - never hit before since every prior test file had both.
+Verified: real-data Add ID, synthetic-gap safe collapse, blocked-
+then-fallback, and full delete-and-collapse math.
+
+## Sep 12 2026 - Master IDE: ignore an ID range, Build 413.90
+
+New toolbar control - checkbox + From/To + Apply. Hides that range
+from the table and every check, excludes it from status bar used/
+free. Display/check-time only, never touches Save output. Verified:
+ignoring 0-1932 drops 422/573 entries, boundary-inclusive.
+
+## Sep 12 2026 - Asset Workshop: Add File Externally, Build 412.90
+
+Cross-reference right-click: Add File Externally for Missing DFF/
+COL rows. DFF adds via IMGFile.add_entry (own auto-save/backup).
+COL merges into a real standalone file, refuses cleanly for COL
+embedded in gta3.img. Added col_paths field (col_path is display
+text only, was a real bug this feature would have hit). Docstring
+simplified to one line.
+
+## Sep 12 2026 - Asset Checker -> Asset Workshop: standalone dockable workshop, Build 411.91
+
+Converted to AssetWorkshop(QWidget) in its own apps/components/
+Asset_Workshop/ folder - same dual-mode pattern as Master IDE
+Workshop (tab-embedded or standalone, taskbar registered). Buttons
++ summary now inside a real DockableToolbar. All call sites
+updated; old asset_checker_dialog.py removed. CAVEAT: no PyQt6 in
+this sandbox - verified by review only, same as Master IDE's.
+
+## Sep 12 2026 - Asset Checker: pick up COL entries embedded in gta3.img, Build 410.90
+
+check_assets now scans the IMG for real COL entries too (VC mostly,
+SA exclusively store collision data this way, not a standalone
+gta3.col). Reads raw bytes via IMGFile, parses via COLFile's own
+_parse_col_data, merges with any standalone col_path. CAVEAT: no
+real binary test fixture available - verified by code review only.
+
+## Sep 12 2026 - Master IDE: standalone dockable workshop, Build 409.90
+
+Converted from QDialog to MasterIDEWorkshop(QWidget) in its own
+apps/components/Master_Ide/ folder - same dual-mode pattern as
+every other workshop (tab-embedded or standalone window, taskbar
+registered). Button row now inside a real DockableToolbar (own
+copy, float/collapse/drag/dock).
+
+New ignore_base_files option (checkbox, on by default): skips
+default.ide/gta3.ide (matched by basename regardless of folder)
+when loading from a .dat, so ID counting/reassignment starts from
+the first real world (generic) IDE file. All call sites updated;
+old master_ide_dialog.py removed.
+
+## Sep 12 2026 - Master IDE: status bar with IDs used/free, Build 408.90
+
+New status bar: "IDs used: N | Free: M (range min-max)" - real
+distinct declared IDs within this app's default range for the
+detected game. Updates on every reload. Verified: 573 used, 5427
+free of VC's 0-5999.
+
+## Sep 12 2026 - ID Shift dialog: editable Engine ID Ceiling, Build 407.90
+
+New editable "Engine ID ceiling" field, defaults from this app's
+own ID_RANGES (not asserted authoritative - real limits vary per
+engine/patch). "To highest loaded ID" and "To engine ceiling" are
+now separate buttons - loaded-max vs the editable engine limit.
+
+## Sep 12 2026 - ID Shift dialog: To highest ID button, Build 406.90
+
+Fills End ID with the real max declared ID currently loaded - "shift
+everything from 2000 onward" is now one click instead of hunting
+for the ceiling. Verified against real data.
+
+## Sep 12 2026 - Master IDE: file-shaped table view, Build 405.90
+
+Table mirrors the real .ide structure - section header row, its
+entries, "end" row, blank spacer between sections - instead of a
+repeated Section column. Header/end/blank rows unselectable. 4
+columns now (ID/Model/TXD/Source IDE).
+
+## Sep 12 2026 - Master IDE: multi-select Rename/Remove, Build 404.90
+
+Right-click now works on the real full shift/ctrl-click selection,
+not just the clicked row. Rename stays single-target; Remove
+applies to every selected objs/tobj row, one confirmation, one
+write per touched file. Verified: 3-row batch remove = 1 write,
+count drops by exactly 3.
+
+## Sep 12 2026 - Master IDE: Insert IDE File / Insert Text / Remove File, Build 403.90
+
+Insert IDE File adds one more real .ide to the merge. Insert Text
+pastes raw IDE text, appended to an existing loaded file (backed up
+first) or saved as new - both real text on disk before merging.
+Remove File unloads one file from the session (disk untouched).
+Verified end-to-end: append/new-file merge correctly, remove drops
+only that file's entries.
+
+## Sep 12 2026 - Master IDE: ID Shift dialog (slider-equivalent UI), Build 402.90
+
+id_shift_dialog.py: Start/End ID + offset, Preview shows moved
+count or full conflict list, optional IPL cascade file list. Apply
+writes touched IDE file(s) + cascades IPL, reports results. Wired
+as a button in Master IDE. Verified end-to-end against real data.
+
+## Sep 12 2026 - Master IDE: txdp false-collision fix + SOL file-range check, Build 401.90
+
+txdp entries all get model_id=0 (parser placeholder) - was falsely
+flooding ID collisions at id=0. Excluded alongside 2dfx (both carry
+no real declared ID). New SOL file_range_violations check per
+Keith's own real "ID Key (usage)" doc - each source file expected
+to own its own ID block. Also fixed a real latent crash: _on_save
+referenced total_flags without computing it. Verified: no false
+positives on real VC/SA data, SOL violation fires correctly.
+
+## Sep 12 2026 - Master IDE: fix 2dfx data corruption in Save/merge, Build 400.90
+
+write_master_ide's generic fallback reconstructed 2dfx from parsed
+fields, losing quoted corona names and trailing fields - real bug
+report, corrupted data on every save. Fixed: non-editable sections
+pooled as raw lines per file, written back combined+sorted
+numerically, never reconstructed. Dialog: 2dfx no longer shown as
+rows or counted in the header total. Verified against real data:
+126 in, 126 out, byte-identical.
+
+## Sep 12 2026 - Master IDE: ID block reassignment + 2dfx/IPL cascading, Build 399.90
+
+plan_id_shift (dry-run, conflict detection, all-or-nothing) +
+apply_id_shift (objs/tobj + 2dfx cascade in memory) + cascade_ipl_
+files (backs up, substitutes only the leading ID field on inst/cars
+lines, everything else byte-untouched). Tested: conflict rejection,
+2dfx cascade, IPL substitution byte-exact, backups for both.
+
+## Sep 12 2026 - Master IDE UI: wire rename/remove/add entry, Build 398.90
+
+Right-click Rename/Remove on rows (objs/tobj only). Add Entry
+button opens a form. Each op calls master_ide_edit then write_
+source_file, reloads merged view+checks on success.
+
+## Sep 12 2026 - Master IDE: safe single-entry rename/add/remove, Build 397.90
+
+rename_entry/add_entry/remove_entry (objs/tobj only) + write_
+source_file (backs up, writes back ONE real source file). Every
+other section copied through from original raw text verbatim -
+generic formatter is lossy for anything but objs/tobj. add_entry
+requires real required fields, caught by round-trip test that an
+incomplete entry silently fails to re-parse.
+
+## Sep 12 2026 - Backup system: real backup-before-write, tested in isolation, Build 396.90
+
+file_backup.py: backup_file/backup_files/list_backups/restore_
+backup. Timestamped .bak in .imgfactory_backups/, size-verified.
+Tested standalone before any write path uses it - Master IDE plan
+step 3, required before the ID slider/cascading step.
+
+## Sep 12 2026 - Master IDE: 3 new checks, Build 395.90
+
+name_collisions: same model name under different IDs across files
+(load-order risk). redefinitions: same ID+name, different txd/
+section/data. out_of_range: ID outside the game's real ID range.
+Dialog: short warning + Details popup per check, all flagged rows
+highlighted, save prompt lists every category.
+
+## Sep 12 2026 - Master IDE: exclude 2dfx/ifx stubs from collision detection, Build 394.90
+
+Same root cause as the Asset Checker fix - 2dfx entries share their
+base object's real ID by design, not a genuine collision. Still
+grouped under their own 2dfx section in the merged output.
+
+## Sep 12 2026 - Asset Checker: exclude 2dfx/ifx stub entries, Build 393.90
+
+2dfx entries carry a synthetic "2dfx_<id>" name sharing the real
+object's ID - falsely counted as a separate missing model. Real
+model already covered by objs/tobj. Only relevant again once real
+ID reassignment/cascading exists (Master IDE future step).
+
+## Sep 12 2026 - Asset Checker: fix window-stretching file list, Build 392.90
+
+Checked-files label was one giant comma string for whole-game
+checks, stretching window off-screen. Now a short summary + "Show
+list" button + auto 5s-close popup, one file per line.
+
+## Sep 12 2026 - Asset Checker: project Continue/Browse prompt, Build 391.90
+
+open_asset_checker checks the current project's real game_root,
+detects the game, finds its .dat, offers "Continue to load project
+path 'X, gta_vc.dat'" or "Browse..." for a different .dat.
+
+## Sep 12 2026 - Asset Checker: whole-game check from a .dat, Build 390.89
+
+check_assets/ide_path takes a list now, merges multiple real IDE
+files. find_game_asset_files resolves gta3.img+COL+all IDE from a
+game's .dat, falls back to GTA3-style parsing for unknown .dat
+names (other modding projects). Intro tile, DAT Browser/Dir Tree
+.dat right-click ask for the game .dat, not one file.
+
+## Sep 12 2026 - Asset Checker tile on Intro page, Build 389.88
+
+New tile right of Vehicle Workshop in Asset Editors group. Prompts
+for an IMG/COL/IDE file when opened with no context.
+
+## Sep 12 2026 - Master IDE: load from .dat, wired into UI
+
+Load all IDE files a game's .dat loads (default.dat+main, GTA3/VC/
+SA/SOL) and merge. Added Master IDE action to DAT Browser and Dir
+Tree right-click (.dat, .ide), and a button in Asset Checker.
+
+## Sep 5 2026 - Model Workshop: viewport light-direction crash
+
+**apps/components/Model_Editor/model_workshop.py:**
+- Fixed real crash: paintGL -> _setup_lighting -> IndexError: tuple index
+  out of range on glLightfv(...ld[3]) in apps/methods/dff_viewport.py
+  (shared). Root cause: the viewport light-setup dialog
+  (_open_light_setup_dialog's _apply_live/_cancel, plus
+  _load_viewport_light_settings and its own default fallback) built
+  self._vp_light_dir as a 3-element (x,y,z) tuple and assigned it
+  straight to vp._light_dir, bypassing dff_viewport's own
+  set_light_dir(x,y,z) which appends the required w=0.0 -
+  _setup_lighting always expects a 4-tuple. Map_Editor's own separate
+  copy of the same dialog already built a 4-tuple correctly, so this
+  was Model_Editor-only. All 4 sites now build/default to a 4-tuple.
+- Second crash this surfaced: _compute_face_shade's own CPU-side
+  Lambertian shading unpacked `lx, ly, lz = light`, which breaks once
+  light is a genuine 4-tuple - changed to `light[0], light[1], light[2]`.
+  Map_Editor's separate copy of this same helper had the identical
+  latent bug (already receiving 4-tuples there) - fixed there too.
+
+## July 2026 - Model/COL/TXD Workshop: native QToolBar ribbon rebuild
+
+**apps/components/Model_Editor/model_workshop.py:**
 - Replaced the old DockableToolbar-based panels (_create_transform_icon_panel,
   _create_transform_text_panel, _create_preview_controls, plus their
   reflow/grid helpers) with a native QMainWindow + QToolBar system -
-  Transform, Navigation, Effects ribbons. RibbonManagerDialog added:
-  two-pane dialog to reassign actions between toolbars, create/delete
-  toolbars, save/load named presets, drag to reorder, plus an icon-size
-  slider (was only reachable via toolbar right-click before).
-- The old icon-vs-text dual-mode toggle (two separate full panels,
-  switched by visibility) replaced by QToolBar's native
-  setToolButtonStyle() - one ribbon now handles icon-only/text-only/both
-  instead of maintaining two. Default display mode changed to icons-only
-  per request.
+  Selection, Snap Targets, Edit Geometry, Navigation, Render ribbons.
+  RibbonManagerDialog added: two-pane dialog to reassign actions between
+  toolbars, create/delete toolbars, save/load named presets, drag to
+  reorder. Icon size slider added directly in the dialog (was only
+  reachable via toolbar right-click before).
+- Removed ~1,240 lines of now-dead code left over from the rebuild -
+  every removed action already had a live equivalent in the new ribbons,
+  confirmed via zero call sites before deletion.
+- Added the 3ds Max style 4-Pane View (Top/Front/Side/Perspective quad
+  viewport) - QStackedWidget central widget, per-pane view reassignment
+  via right-click, splitter-resizable, selection state shared live across
+  all panes and the main view, flip/rotate/render-style actions applied
+  to every visible pane instead of just whichever one is hidden.
+  DFFViewport (dff_viewport.py) gained set_view_lock() for ortho
+  projection + locked rotation on Top/Front/Side panes.
+- Icon-scale persistence bug fixed (slider wrote to model_workshop.json
+  but nothing read it back on next launch - was always resetting to 20px).
+- Ribbon layout save/restore made version-aware: _RIBBON_LAYOUT_VERSION
+  class constant passed into QMainWindow.saveState()/restoreState() so a
+  stale save from an older ribbon structure is cleanly rejected instead
+  of Qt silently failing to restore anything. restoreState()'s return
+  value is now checked/logged. All 5 ribbons force-shown after every
+  restore attempt regardless of outcome - there's no user-facing way to
+  have intentionally hidden one, so any hidden result is corrected.
+- Fixed the whole-app-close bug generically (see imgfactory.py below) -
+  ribbon layouts previously never saved unless each workshop tab was
+  closed individually rather than the whole app.
+- Chased a black-window/QOpenGLWidget context-creation failure through
+  several rounds of code rollback before journalctl confirmed it was a
+  GPU/PCIe hardware fault (BadTLP bus errors + NVIDIA GSP firmware load
+  failure) unrelated to any of the above - resolved by a reboot on the
+  affected machine, no code change needed.
+
+**apps/components/Col_Editor/col_workshop.py:**
+- Same DockableToolbar -> QToolBar rebuild: Transform, Navigation, Render
+  ribbons + RibbonManagerDialog (adapted). Removed 9 dead methods from
+  the old panel system.
+- Bottom info panel (COL name field, format combo, switch/convert/
+  compress/uncompress/import/export, shadow mesh view/create/remove) had
+  the same dual wide-row/narrow-row duplication TXD Workshop had -
+  replaced with three more ribbons: Name, Format, Shadow Mesh.
+  _update_transform_text_panel_visibility (the old width-based row
+  toggle) simplified to a no-op now that QToolBar compacts natively.
+- Mid-cleanup mistake: a dead-code deletion pass accidentally removed
+  the live Surface Data tab (_create_surface_tab + 9 helper methods) that
+  happened to sit between two genuinely-dead ribbon functions - caught
+  from the resulting crash, restored verbatim from the pre-rebuild
+  commit, and every subsequent deletion in this file was diffed against
+  a snapshot before committing.
+- Same icon-scale persistence fix, same versioned save/restore + force-
+  visible safety net as Model Workshop (_RIBBON_LAYOUT_VERSION 1 -> 2
+  when Name/Format/Shadow Mesh were added).
+- Dedicated quad_view_icon added to imgfactory_svg_icons.py (was
+  reusing fit_grid_icon, which means "zoom to fit" not "split view").
+
+**apps/components/Txd_Editor/txd_workshop.py:**
+- Same rebuild: Transform, Navigation, Effects ribbons + RibbonManagerDialog.
+  The old icon-vs-text dual-mode toggle (two separate panels, switched by
+  visibility) replaced by QToolBar's native setToolButtonStyle() - one
+  ribbon now handles icon-only/text-only/both instead of maintaining two.
+  Default display mode changed to icons-only per request.
 - Found and fixed several real bugs the old dual-mode system had, all
   dormant until icons-mode became the default and started exercising
-  them for the first time:
-  - _set_status() called in 3 places but never defined anywhere in this
-    file (every other workshop has it).
-  - self.export_btn/import_btn only ever built in the text/both-mode
-    branch - icons mode would crash the instant a texture was selected
-    (self.export_btn.setEnabled(True) on a nonexistent attribute).
-  - _create_merged_icons_line referenced an undefined 'info_layout'
-    variable (should've been 'merged_layout') and, separately, an
-    undefined 'texture' variable in a bumpmap-detection block that
-    duplicated logic already done correctly elsewhere.
-  - A typo'd create_manage_icon (missing the underscore prefix every
-    sibling icon call used).
-  - _apply_button_mode_to_button called setFixedSize() on QActions from
-    the new ribbon - a hasattr() guard didn't reliably catch this on
-    all PyQt6 builds, replaced with an explicit isinstance(QAction) check.
+  them: _set_status() called in 3 places but never defined anywhere in
+  this file; self.export_btn/import_btn only ever built in text/both
+  mode (icons mode would crash the instant a texture was selected);
+  _create_merged_icons_line referencing undefined 'info_layout' and
+  'texture' variables and a typo'd create_manage_icon (missing
+  underscore); _apply_button_mode_to_button calling setFixedSize() on
+  QActions from the new ribbon.
 - Bottom info panel (name/alpha fields, format/bitdepth/resize/compress,
   mipmap/bumpmap controls) converted to three ribbons: Name, Format,
-  Mipmaps. This fixed truncated/overlapping button text in icons mode
-  (the old row kept full text labels squeezed next to icons instead of
-  being true icon-only) and an alpha-name field that wouldn't show -
-  QToolBar.addWidget() wraps widgets in a QWidgetAction, and toggling the
-  inner widget's visibility directly doesn't reliably relayout the
-  toolbar; needed to toggle the wrapping action too.
-- Icon-scale persistence bug fixed (slider wrote to txd_workshop.json but
-  nothing read it back on next launch).
-- Ribbon layout save/restore made version-aware: _RIBBON_LAYOUT_VERSION
-  class constant (bumped 1 -> 3 across the Name/Format split) passed into
-  QMainWindow.saveState()/restoreState(), stale saves cleanly rejected,
-  restoreState()'s return value checked/logged, all 6 ribbons force-shown
-  after every restore attempt regardless of outcome.
+  Mipmaps - fixing truncated/overlapping button text in icons mode (the
+  old row kept full text labels squeezed next to icons instead of being
+  true icon-only) and an alpha-name field that wouldn't show (QToolBar.
+  addWidget() wraps widgets in a QWidgetAction - toggling the inner
+  widget's visibility directly doesn't reliably relayout the toolbar,
+  needed to toggle the wrapping action too).
+- Same versioned save/restore + force-visible safety net
+  (_RIBBON_LAYOUT_VERSION 1 -> 3 across the Name/Format split).
 - #vers tags added to 67 previously-untagged methods, full ##Methods
-  list rebuilt, header filename typo fixed (was missing the apps/ prefix
-  and had a stray space in the path).
+  list rebuilt, header filename typo fixed (was missing apps/ prefix
+  and had a stray space).
+
+**apps/components/Img_Factory/imgfactory.py:**
+- closeEvent only ever saved the main app's own settings - it never told
+  any open workshop tab (Model/COL/TXD Workshop etc) to save its own
+  ribbon state first. window_closed only got emitted via close_tab()
+  (closing one tab), never on a full application shutdown, which is the
+  normal way most people exit. Now iterates open tabs on close and emits
+  window_closed for each ToolMenuMixin child before quitting.
+- ProjectManager() was called with zero arguments in 4 places but
+  requires main_window - every call threw TypeError, silently caught,
+  leaving self.project_manager permanently None. Projects.json profiles
+  were never actually broken, they just never loaded into a live
+  instance. Fixed all 4 call sites; added last_project_name/
+  last_game_root to IMGFactorySettings (IMG Factory's own settings, not
+  the shared app_settings_system.py) so the last active project
+  auto-restores at startup.
+
+**apps/methods/dragdrop_functions.py:**
+- setup_drag_drop_widget's None-widget guard only wrapped the
+  setAcceptDrops call, not the attribute-set right after - crashed when
+  called with a None widget. setup_main_window_drag_drop separately had
+  a hasattr()-is-true-even-when-value-is-None bug on gui_layout.table.
+  Both fixed.
+
+**apps/gui/gui_layout_custom.py:**
+- _update_status_indicators was called in _initialize_features but never
+  defined anywhere in the class - silently caught every startup, logged
+  as a harmless-looking "Feature init error". Added it, wired to the
+  existing update_img_status()/set_ready_status() API.
 
 
+
+**apps/components/Model_Editor/model_workshop.py:**
+- Flip Horizontal/Flip Vertical buttons already had short, correct
+  labels but their tooltips still said "Flip col vertically/
+  horizontally" - changed to "Flip model..."
+- Analyze/Copy/Paste buttons carried over from COL Workshop verbatim
+  ("Analyze collision data", "Copy/Paste col to/from clipboard") -
+    is keeping these three in Model Workshop as-is, just renamed:
+  Analyse Model, Copy Model, Paste Model (labels + tooltips)
+- Confirmed Rotate Left/Right wording is fine, no change needed there
+
+
+## June 2026 - Crash: Render Settings dialog used COL3DViewport API on DFFViewport
+
+**apps/methods/dff_viewport.py, apps/components/Model_Editor/model_workshop.py:**
+- AttributeError: 'DFFViewport' object has no attribute '_bg_color' -
+  app aborted (core dumped) - reported with full traceback from
+  _open_render_settings_dialog
+- _render_style/_bg_color belong to the unrelated COL3DViewport class;
+  DFFViewport (Model Workshop's actual preview_widget) uses _mode
+  ('wireframe'/'solid'/'textured') and had no background override at
+  all - set_background_color was a deliberate no-op, background was
+  theme-only
+- Added a real _bg_color_override + _get_bg_color() resolver to
+  DFFViewport (override takes priority over theme), wired both GL
+  clear calls to it. Implemented set_background_color() for real;
+  set_checkerboard_background() now clears the override back to theme
+- Rewrote _open_render_settings_dialog to use _mode/set_render_mode
+  and the new bg override - dropped Semi-transparent (not supported)
+  and the unconnected Scene dropdown, added "Use Theme" reset button
+- Fixed 5 other call sites making the same pw.set_render_style()/
+  pw._render_style mistake on a DFFViewport instance
+  (_cycle_view_render_style, texture panel preview row, render-mode
+  right-click menu, 2 texture-load paths) - latent no-ops/crashes
+  depending on whether _render_style happened to already exist as a
+  stray instance attribute. Texture panel's Semi button now maps to
+  Solid (closest equivalent, .per)
+
+
+## June 2026 - Build 387.83 - IMG tabs missing taskbar button and collapsed splitter
+
+**apps/components/Img_Factory/imgfactory.py, apps/methods/tab_system.py, apps/app_info.py:**
+- Opening an IMG file logged "Switched to tab" but gave no taskbar
+  button to switch back to it later, and the tab area could still be
+  squeezed by the left panel
+- Root cause: _sync_img_taskbar_buttons() deliberately skips tabs whose
+  file_object is still None - correct, since create_tab() is called
+  before the IMGLoadThread finishes - but nothing called it again once
+  loading completed and file_object got set, so the button never
+  appeared
+- Added a call to _sync_img_taskbar_buttons() + _ensure_tab_area_visible()
+  at the end of _on_img_loaded(), after file_object is set
+- create_tab() also still had the old _dirtree_state==2 splitter-resize
+  branch (50/50 split, one specific state only) instead of the shared
+  _ensure_tab_area_visible() helper - replaced it, fixing the same
+  collapsed-splitter issue for COL tabs too
+- App_build_num 386 -> 387, App_imgfactory_version 82 -> 83
+
+
+## June 2026 - Stale build date on welcome screen
+
+**apps/app_info.py:**
+- App_build still said "May 19 2026" despite App_build_num/
+  App_imgfactory_version being bumped to 386.82 last entry - welcome
+  screen header showed "Img Factory 1.6 - Build May 19 2026", caught
+  by  . Updated to June 28 2026.
+
+
+## June 2026 - Build 386.82 - Vehicle Workshop moved to Asset Editors
+
+**apps/components/Img_Factory/welcome_screen.py:**
+- Vehicle Workshop tile moved from "Editors & Tools" into "Asset Editors"
+  on the Intro/Quick Start page, alongside Timecyc Workshop
+
+**apps/app_info.py:**
+- App_build_num 385 -> 386, App_imgfactory_version 80 -> 82 to mirror
+  imgfactory.py's actual header version
+
+File header versions bumped (overdue from earlier this session):
+imgfactory.py 81->82, welcome_screen.py 18->19, gui_layout_custom.py
+15->16, scm_workshop.py 1->2, hex_workshop.py 2->3, txd_workshop.py
+14->15, col_workshop.py 79->80, model_workshop.py 119->120.
+
+
+## June 2026 - Intro page missing 7 existing editors/workshops
+
+**apps/components/Img_Factory/welcome_screen.py, apps/gui/gui_layout_custom.py,
+apps/components/Img_Factory/imgfactory.py, apps/components/Scm_Workshop/scm_workshop.py,
+apps/components/Hex_Editor/hex_workshop.py:**
+- IDE Editor, IPL Editor, Handling Editor, Breakable Editor, Vehicle
+  Workshop, SCM Workshop and Hex Workshop all existed and worked but had
+  no tile on the Intro/Quick Start page - AI Workshop intentionally left
+  out, needs more work first
+- Added "Editors & Tools" section to Quick Start with 7 new tiles and
+  signals, wired through _connect_workshops same as existing tiles
+- IDE/IPL/Handling/Breakable: connected to their existing docked open
+  methods, no further changes needed
+- Vehicle Workshop: open_vehi_editor was a dead "coming soon" stub even
+  though VehicleWorkshop's real module worked standalone - added
+  open_vehicle_workshop_docked via the generic _open_workshop_tab
+  helper, redirected the stub to call it
+- SCM Workshop: had a working docked embed path already, just missing
+  _ensure_tab_area_visible() - added it, added open_scm_workshop_docked
+  wrapper on main window
+- Hex Workshop: had no docked path at all (standalone QApplication only)
+  - added one matching SCM's embed pattern, added open_hex_workshop_docked
+  wrapper
+
+
+## June 2026 - Intro toggle collapsing instead of opening after workshop tab opens
+
+**apps/components/Img_Factory/imgfactory.py, apps/gui/gui_layout_custom.py:**
+- _ensure_tab_area_visible's >5%/<30% threshold logic could leave the
+  left panel at a non-zero width without resetting isVisible() or
+  currentIndex(), so the next click on Intro read it as already showing
+  and collapsed it instead of opening it - regression from the previous
+  session's 100%-width fix landing as an 80/20 split in practice
+- Simplified _ensure_tab_area_visible to unconditionally fully collapse
+  the left panel (hide + 0 width) whenever a workshop tab opens, no
+  threshold branching
+- _show_intro_panel's toggle check used a fixed 20px width threshold
+  (not a percentage) to decide "is intro currently showing" - changed
+  to percentage-based so a partial-width leftover state can't be
+  misread as intro being open
+- Confirmed fixed by  
+
+
+## June 2026 - Workshop tabs squeezed half-width by left panel
+
+**apps/components/Img_Factory/imgfactory.py:**
+- _ensure_tab_area_visible only shrank left_stack (Intro/Dir Tree/DAT) to
+  20%, so a freshly opened workshop tab still got squeezed into the
+  remaining 80% of a narrower total width - screenshot showed Timecyc
+  Workshop sharing the window with Quick Start at roughly half width
+- Now fully collapses left_stack (hide + splitter to 0) and gives the
+  tab area 100% width, clearing intro/dirtree/dat active state in the
+  tool taskbar to match - same as manually toggling Intro off
+
+
+## June 2026 - Docked workshop tabs opening with collapsed splitter
+
+**apps/components/Txd_Editor/txd_workshop.py, apps/components/Col_Editor/col_workshop.py,
+apps/components/Model_Editor/model_workshop.py, apps/components/Img_Factory/imgfactory.py:**
+- Reverted the raise_()/activateWindow() standalone-window changes from
+  the previous session - wrong fix for this bug, these workshops are
+  docked tabs, not standalone windows
+-  cause: TXD, COL, Model Workshop and Model Viewer embedded-tab opens
+  called setCurrentIndex() but never _ensure_tab_area_visible(), so
+  content_splitter kept the tab area at ~0% width - tab was selected but
+  invisible until the splitter handle was dragged open by hand
+- Water, DP5, AI, IDE and Radar Workshop already called this after
+  setCurrentIndex() - added the same call to the four missing spots
+
+
+## June 2026 - Model Workshop: Extrude selected faces (DFF v119)
+
+**apps/components/Model_Editor/model_workshop.py:**
+- Added _extrude_selected_faces (viewport) - duplicates every vertex used by
+  the selected faces (position, normal, colour, all UV layers carried over),
+  repoints the selected triangles to the duplicates (becomes the cap), builds
+  side-wall triangles along the boundary edges of the selected island (edges
+  used by exactly one selected face - interior shared edges between two
+  selected faces get no wall), then offsets the cap along the averaged face
+  normal by the given distance. Mutates the real DFF Geometry directly so it
+  persists on save, not just the viewport's display copy.
+- Added _extrude_dialog (workshop) - prompts for distance via QInputDialog,
+  validates Face/Polygon select mode and a non-empty selection first
+- Added Extrude toolbar button next to Create Primitive
+- Selection is updated to the new cap faces after extrude, so a following
+  gizmo drag continues to move the extruded result (uses the scoped-gizmo
+  work from v72)
+- Known gap (pre-existing, not introduced here): DFF editing has no undo -
+  delete/duplicate/transform/extrude are all currently irreversible without
+  reloading the file. Undo only exists for COL model editing
+  (_push_undo/_undo_last_action), keyed to current_col_file.models, which
+  does not apply to DFF geometries.
+
+
+
+## June 2026 - Model Workshop: sub-object selection (vertex/edge/poly) + scoped gizmo
+
+**apps/components/Model_Editor/model_workshop.py:**
+- Added _selected_verts, _selected_edges sets alongside existing _selected_faces;
+  _select_mode now actually drives picking (previously set but unused)
+- Added _pick_vertex, _pick_edge (same screen-projection pattern as _pick_face)
+- Added _apply_selection_click: shared click/ctrl-toggle/shift-add logic for
+  vertex, edge, and face selection
+- Added _pick_poly_group: real connected-face flood fill that stops at material
+  boundaries (3ds Max Element/Polygon-style select) - builds face adjacency from
+  shared edges on demand, no caching (meshes mutate often enough that a stale
+  cache risks wrong results silently)
+- V/E/F/P select buttons now in a real QButtonGroup (previously independently
+  checkable, so multiple could show checked at once); Face mode default
+- Switching select mode clears the other modes' selections to avoid stale
+  hidden state
+- Added _selected_vertex_indices: resolves the active selection in any mode
+  down to concrete vertex indices (edge/face/poly expand to constituent verts)
+- Gizmo translate/rotate now move/rotate only the active selection's vertices
+  when one exists, falling back to whole-model when selection is empty -
+  preserves existing COL box/sphere/bounds editing behaviour untouched
+- Drag-select extended to vertex/edge modes (simple additive); face/poly
+  drag-select paint-mode behaviour unchanged
+
+
+
+## June 2026 - Removed stale unix_launcher.sh
+
+- Removed apps/support/unix_launcher.sh - referenced old 1.5-era root layout
+  (root imgfactory.py, components/, gui/) that no longer matches current
+  apps/components/, apps/gui/ structure
+- No other files referenced it
+- Use launch.py instead
+
+
+
+## June 2026 - Startup dependency check + unified launcher
+
+**apps/core/dependency_check.py (new, v1):**
+- Checks PyQt6, Pillow, numpy, send2trash importable before app starts
+- On WSL, checks DISPLAY is set and /tmp/.X11-unix socket exists
+- Prevents silent freeze on launch when WSLg/X server is not running
+- Called from launch.py before importing imgfactory
+
+**launch.py (new, v1) - replaces six separate launchers:**
+- Single entry point: menu (no args) or direct launch (python3 launch.py 1-6)
+- Replaces launch_imgfactory.py, launch_col_workshop.py, launch_txd_workshop.py,
+  launch_model_workshop.py, launch_dp5_workshop.py, launch_ai_workshop.py (all removed)
+- Fixed bug in old launch_dp5_workshop.py: called col_workshop.main() instead of
+  dp5_workshop.main()
+- WSL/Wayland display config and standalone QApplication fallback unchanged from
+  old launchers, consolidated into one file
+
+**requirements.txt:**
+- Added Pillow, numpy - both were real (non-optional) dependencies, missing from
+  the file despite being imported directly in Model/COL/TXD workshops and
+  indexed_color_import.py
+
+**README.md:**
+- Fixed Requirements section: numpy was missing entirely, Pillow was incorrectly
+  marked optional
+- Added Linux/WSL system library note pointing to setup_imgfactory.sh
+- Updated Quick start section for launch.py
+
+**setup_imgfactory.sh / tools/dev_setup.py / apps/support/unix_launcher.sh:**
+- Updated all references from launch_imgfactory.py to launch.py
+
+
+
+**smart_file_router.py v2:**
+- Added nodes.dat, nodes0-8.dat, paths.ipl, paths2-5.ipl, tracks.dat, tracks2.dat routes to Path Workshop
+- All path file types now open directly in Path Workshop from dat_browser and directory_tree_browser
+
+**path_workshop.py v21:**
+- Removed emoji tab labels (Nodes/Train/Flight/Static) - rule 18
+- Removed all non-ASCII characters (em dash, middle dot, box drawing chars)
+
+**Paths-Workshop repo (paths_workshop.py v3):**
+- Added _Waypoint, _TextPathParser, _IplPathParser, _WaypointTab classes
+- _make_text_tab now uses _WaypointTab directly - train/flight/spath tabs functional
+- Removed non-ASCII characters
+
+**water_workshop.py v13 (docked) / v14 (standalone):**
+- Fixed render error: removed Y-flip from _rebuild_cache (img_y = row, not gw-1-row)
+- Fixed _cell_at: cy = ay//ts, not gw-1-(ay//ts)
+- Fixed preview/hover/selection overlay coords: removed gw-1-cy Y-flip
+- Both repos updated (Img-Factory-1.6 v13, Water-workshop v14)
+
+
+- Added waterpro.dat and water.dat routing to Water Workshop
+- _launch_water_workshop: reuses existing open window or opens new one
+
+**waterpro.dat format confirmed (SOL - State of Liberty):**
+- Header: uint32 version (=4 for SOL)
+- [4:964] water_levels_count (byte) + 48 floats WaterLevelData + 768 bytes WaterUnk
+- [964:964+gw*gw] phys_grid: gw*gw bytes (gw=384 for SOL)
+- [964+gw*gw:] vis_grid: (2*gw)*(2*gw) bytes = 768*768 = 589824 bytes
+- Parser was correct, file was simply not routed to Water Workshop
+
+
+- Added anim, hier section parsers (model/txd/anim fields)
+- Added txdp section parser (txd/parent relationship)
+- Added 2dfx section parser (effect id/type/raw)
+- Added hand section parser (model name/raw)
+- Section header detection now recognises txdp, 2dfx, hand
+
+**cc.py -> cc.sh (Img-Factory-1.6, Model-Workshop, Col-Workshop, Txd-Workshop):**
+- Renamed from .py to .sh (was a shell script with wrong extension)
+- Removed emoji from content (rule 18)
+
+## May 2026 - DFFViewport refactor + texture/UV fixes
+
+**DFFViewport moved to shared module (`apps/methods/dff_viewport.py` v1):**
+- Single authoritative OpenGL viewport used by all three tools when docked
+- Standalone fallback: each tool has its own `methods/dff_viewport.py`
+- Vehicle Workshop uses `VehicleViewport(DFFViewport)` subclass with animation/door methods
+- Model Workshop DFF preview switched from software `COL3DViewport` to `DFFViewport` (OpenGL)
+- Model Viewer inline `DFFViewport` class removed, now imports from shared module
+
+**Texture wrap/filter mode (`dff_parser.py` v5, `txd_parser.py`, `dff_classes.py`):**
+- `Material` class gains `wrap_u`, `wrap_v`, `filter_mode` fields
+- DFF `_parse_material`: texture struct chunk now parsed for RW filter/wrap flags
+- TXD `_parse_native_texture`: filter/wrap bytes no longer skipped, included in texture dict
+- `DFFViewport._rw_wrap_to_gl()`: converts RW addressing (WRAP/CLAMP/MIRROR) to GL constants
+- `_upload_textures` v2: applies per-texture GL wrap params on upload
+- Fix: struct advance bug - `tp` always advances past struct body before reading name string
+  (previous code conditionally advanced, causing texture name corruption on all DFFs)
+- Applied to all three `dff_parser.py` copies (methods/, Model_Editor/depends/, Col_Editor/depends/)
+
+**Texture scanning - shared TXDs per game version (`model_viewer.py`):**
+- GTA3/VC: loads `models/generic.txd`, `models/particle.txd`, `models/Generic/wheels.DFF`
+- SA: loads `models/generic/vehicle.txd`, `models/generic/wheels.txd`, `models/generic/wheels.DFF`
+- Game version read from `ide_db._game` set by DAT Browser on load
+- IDE DB TXD lookup: step 1a uses exact `txd_name` from parsed IDE before prefix heuristics
+- Texture suffix stripping: `buildrt4_fehihwm` -> `buildrt4` via `_strip_tex_suffix()` regex
+- Alias map: TXD base name matched to suffixed DFF material name
+
+**UV V-flip (`model_workshop.py` `COL3DViewport` software renderer):**
+- Software renderer UV: `sy = (1.0-v)*th` - RW V=0 is bottom, QImage V=0 is top
+- Fixes upside-down textures on billboards and buildings in Model Workshop
+
+**Vehicle right-click routing (`right_click_actions.py` v6, `dat_browser.py`):**
+- `mw.vehicle_names` now populated from IDE DB `cars` section when DAT Browser loads
+- Previously only populated when handling.cfg opened manually in Vehicle Workshop
+- DFF right-click: if stem in `vehicle_names` -> "Open in Vehicle Workshop" instead of Model Viewer
+- `_open_dff_in_vehicle_workshop()` v1: extracts DFF to temp, routes via gui_layout
+
+**Parser standalone fallback (`depends/` copies):**
+- `Vehicle_Workshop/depends/`: added `dff_parser.py`, `txd_parser.py`, `dff_classes.py`
+- `Model_Editor/depends/`: added `txd_parser.py`, synced `dff_classes.py`
+- Both workshop files import from `apps.methods` first, fall back to `depends/` standalone
+
+**Bug fixes:**
+- `gui_layout.py`: `_edit_veh_file` missing - replaced with `_open_vehicle_workshop()` v1
+- `vehicle_workshop.py`: caches `mw.vehicle_names` after handling.cfg loads
+- AI Workshop standalone: created `depends/` with `session_manager`, `file_attachments`, `ssh_file_access`
+
+## TODO — Theme-aware icons for all workshop tools
+
+Window/taskbar icons for all tools (Model Viewer, Radar Workshop, TXD Workshop,
+COL Workshop, Model Workshop, DP5 Workshop) should use `bg_panel` from the active
+theme so the icon colour updates when the user switches themes.
+
+Model Viewer already implements this pattern (`mesh_icon` colour = `bg_panel` from
+`app_settings.get_theme_colors()`, refreshed in `_refresh_icons()`). The same
+pattern should be applied to all other tools on next touch.
+
+## May 2026 — Model Workshop bleed-through CONFIRMED FIXED
+
+The bleed-through in Model Workshop when docked inside IMG Factory is now
+confirmed fixed. Took multiple sessions to track down. Full root cause
+documented in v58 entry below. Tested across theme switches - no bleed.
+
+## May 2026 — DFF frame names, vehicle structure analysis
+
+**DFF frame name plugin fixed (`dff_parser.py` v5):**
+- Extension 0x0253F2FE was treated as HAnim PLG header (skip). In VC vehicle
+  DFFs, this extension IS the frame name string directly.
+- Frame names now read correctly: chassis_hi, door_lf_hi_ok, bonnet_hi_ok,
+  wheel_rf, wing_rf_hi_dam etc. Essential for vehicle part identification.
+- All 46 frames of admiral.dff now named correctly.
+
+**Vehicle editor planned (`TODO.md` v7):**
+- 107 VC vehicles parse and frame-name correctly.
+- Plan: render all atomics composited, handling.cfg editor, ped editor.
+- Radar Workshop as base for handling editor layout.
+
+## May 2026 — DFF parser: RW 3.3 has_pos fix (vehicles/peds)
+
+**DFF parser: vehicles and peds now render (`dff_parser.py` v4):**
+- `_parse_geometry`: in RW 3.3 (GTA VC, cv=0x0c02ffff) the morph target
+  `has_pos` flag is stored as 0 even when vertices ARE present. All vehicle
+  and ped DFFs were returning 0 vertices because the `if has_pos` check
+  skipped the vertex data.
+- Fix: when `has_pos=0` but `vert_count>0` and remaining struct bytes can
+  hold `vert_count*12` bytes, force `has_pos=1` and read vertices.
+- Confirmed: train.dff geom[0] now 2163v/1480t (was 0v), geom[1] 254v/146t.
+
+**Texture thumbnail crash fixed (`model_workshop.py` v115):**
+- `_populate_tex_thumbnails`: called `self._get_ui_color()` which only exists
+  on `COL3DViewport`, not `ModelWorkshop`. Replaced with `QColor(40,40,40)`.
+
+## May 2026 — DFF parser: RW 3.3 older format support
+
+**DFF parser handles older VC/GTA3 format (`dff_parser.py` v3):**
+- `_parse_geometry`: older VC DFFs (vehicles, peds) encode geometry flags in
+  the struct chunk TYPE (e.g. 0x00010074) rather than using type=0x00000001.
+  Parser was returning None for these, giving 0 vertices despite having triangles.
+- `_parse_geometry_v33 #vers 1`: new method handles the older format:
+  - Struct chunk body contains: numMorphTargets(4) + bsphere(16) + optional UVs
+  - Vertex data lives AFTER the struct chunk in raw geometry chunk body
+  - Triangle indices come from BinMesh extension (0x050e) not the struct
+  - Builds triangles from BinMesh index list (triangle list or strip)
+- `_parse_extension_v33 #vers 1`: parses BinMesh plugin for older geometry.
+- Confirmed: TRAM.dff (standard) unaffected, train_dl.dff (older) now parses
+  correctly (126v 96t vs previous 0v 96t).
+
+## May 2026 — Texture thumbnails in list, TXD parser DXT fix
+
+**Texture list now shows thumbnails (`model_workshop.py` v114):**
+- `_populate_texture_list #vers 2`: was reading `pixel_data`/`compressed_data`
+  (wrong keys). Now reads `rgba_data` from the parser dict.
+- Column 0 is now a 48×48 thumbnail; col 1=Name, col 2=Size, col 3=Format.
+- Row height set to 52px. Name tooltip shows #N, dimensions, format, mips.
+
+**TXD parser DXT detection fixed (`txd_parser.py` v5):**
+- `_parse_native_texture`: DXT size check now runs FIRST before raster_format
+  interpretation. VC stores DXT data but marks raster_format as ARGB1555 —
+  mip_size matching dxt1/dxt5 block size is the reliable discriminator.
+- PAL8 (256-colour palette) support added.
+- Debug output disabled (was left on for diagnosis).
+
+## May 2026 — Model Workshop DFF toolbar buttons implemented
+
+**DFF toolbar buttons implemented (`model_workshop.py` v112):**
+- `_enable_dff_toolbar #vers 3`: buttons no longer hidden in DFF mode.
+  `create_surface_btn` is COL-only (hidden). All others now active in both modes.
+- `_wire_dff_buttons #vers 1` / `_wire_col_buttons #vers 1`: disconnect/reconnect
+  shared buttons to mode-appropriate handlers on mode switch.
+- `_dff_flip_y #vers 1`: negate Y coord on all geometry vertices.
+- `_dff_flip_x #vers 1`: negate X coord on all geometry vertices.
+- `_dff_rotate_cw #vers 1`: rotate 90° CW around Z axis (x,y)→(y,-x).
+- `_dff_rotate_ccw #vers 1`: rotate 90° CCW around Z axis (x,y)→(-y,x).
+- `_dff_analyze #vers 1`: dialog showing geometries, frames, atomics, verts, tris, mats per geometry.
+- `_dff_copy_geometry #vers 1`: deepcopy selected geometry to `_dff_clipboard_geom`.
+- `_dff_paste_geometry #vers 1`: append clipboard geometry to model, refresh list.
+- `_dff_delete_geometry #vers 1`: confirm then delete selected geometry.
+- `_dff_duplicate_geometry #vers 1`: deepcopy selected geometry, insert after it.
+
+## May 2026 — Model Workshop bleed CONFIRMED FIXED
+
+Bleed-through when docked in IMG Factory confirmed resolved after multiple
+sessions. All three root causes fixed (see v58 entry). Tested across themes.
+
+## May 2026 — Model Workshop bleed root cause found and fixed
+
+**Bleed root cause (`model_workshop.py` v111):**
+Three issues, all absent from COL/TXD, all contributing to bleed:
+
+1. `_apply_theme #vers 8`: was calling `apply_panel_effects(self, app_settings)`
+   which walks all child QFrame/QGroupBox and installs custom paintEvent hooks
+   using `panel_fill_a`/`panel_fill_b` colours. These painted over widget
+   backgrounds with wrong colours, and generated QPainter engine==0 spam on
+   docked widgets. COL/TXD do not call this. Removed.
+
+2. `_apply_theme`: was setting `self.setStyleSheet(ss)` (widget-level override)
+   instead of `QApplication.setStyleSheet(ss)` + `self.setStyleSheet("")`.
+   Widget-level override creates CSS specificity conflicts. Fixed to match
+   COL/TXD exactly.
+
+3. `open_model_workshop`: `container.setAutoFillBackground(True)` set on tab
+   container. COL/TXD do not set this. Removed.
+
+## May 2026 — TXD parser VC/III fix, no fallback
+
+**TXD parser fixed for VC/III format (`txd_parser.py` v2):**
+- `_parse_native_texture`: The 4 bytes after raster_format are `d3d_format`
+  (FourCC) in SA but `has_alpha` (0 or 1) in VC/III. Parser was treating all
+  games as SA so DXT FourCC never matched, rgba stayed None, texture dropped.
+- VC/III fix: when field is not a known FourCC, reads mip data using the
+  4-byte size prefix that precedes each mip level in VC/III format.
+  Detects DXT1/DXT5 from mip data size signature; handles RGBA32/RGB24/RGB565.
+- `_parse_txd_lightweight #vers 4`: fallback chunk-walker removed per no-fallback
+  rule. Parser either works or returns empty.
+
+## May 2026 — Search bar in model left panel, TXD parser fallback
+
+**Search added to Model Workshop left panel (`model_workshop.py` v109):**
+- `_create_left_panel #vers 6`: search button + hidden `QLineEdit` added
+  matching COL Workshop pattern.
+- `_show_model_search #vers 1`: toggles search box, clears on hide.
+- `_filter_model_list #vers 1`: hides non-matching items live as user types.
+
+**TXD parser fallback (`model_workshop.py` v109):**
+- `_parse_txd_lightweight #vers 3`: if primary `txd_parser.py` returns empty,
+  falls back to raw RW chunk walk extracting texture names from string chunks.
+  Handles VC/III TXD variants that the primary parser misses.
+
+## May 2026 — Temp file suffix + docked bleed (panel palette)
+
+**Temp file random suffix fixed (2 more paths, `model_workshop.py` v108):**
+- `_load_txd_file_from_data #vers 1`: `NamedTemporaryFile(prefix=name_, suffix=.txd)`
+  was generating `tree3prc_m7lvjvto.txd`. Now uses `mkdtemp()` + real name.
+- `_on_col_selected #vers 2`: same fix for DFF extraction from left panel.
+
+**Docked bleed - panel background (`model_workshop.py` v108):**
+- `_apply_theme #vers 7`: when docked, now walks `_main_splitter` children
+  and sets `autoFillBackground` + Window palette colour on each panel.
+  `WA_StyledBackground` set on self. Left and middle panels no longer
+  transparent to imgfactory theme.
+
+## May 2026 — Right-click model workshop, temp file name fix
+
+**Right-click "Open in Model Workshop" enabled (`right_click_actions.py`):**
+- Action was wired but `setEnabled(False)` — now enabled and connected.
+- Duplicate `except` block removed from `open_dff_in_model_workshop`.
+
+**Temp file random suffix fixed (`gui_layout.py` v34, `right_click_actions.py`,
+`model_workshop.py` v107):**
+- `NamedTemporaryFile(prefix=stem_, suffix=.dff)` generated names like
+  `Air_brway_33_8ypw3fhr.dff` and `4culbulls_x6fvrfic.txd`.
+  Now uses `tempfile.mkdtemp()` + `os.path.join(dir, entry.name)` so
+  the file keeps its original name. `original_dff_name` passed through
+  to `open_model_workshop` for IDE lookups.
+
+## May 2026 — All Mdl_Editor references purged
+
+**All `Mdl_Editor` references replaced (`dat_browser.py`, `imgfactory.py`,
+`right_click_actions.py`, `gui_context.py`, `gui_menu.py`):**
+- 9 occurrences of `apps.components.Mdl_Editor.mdl_workshop` replaced with
+  `apps.components.Model_Editor.model_workshop`. `MDLWorkshop as ModelWorkshop`
+  aliases removed. No more broken imports from any entry point.
+
+## May 2026 — Compact restore on splitter move, DFF tab switch
+
+**Compact buttons restore on splitter move (`model_workshop.py` v106, `col_workshop.py`):**
+- `_on_splitter_moved #vers 2` (both): was only updating text panel visibility.
+  Now also calls `apply_compact_buttons` with panel width — buttons restore
+  to full text when panel is widened via splitter drag.
+
+**DFF tab not switching on open fixed (`imgfactory.py`):**
+- `_on_tab_changed #vers 10`: was importing `Mdl_Editor.mdl_workshop.MDLWorkshop`
+  (deleted path) — `findChildren` found nothing, so taskbar sync and tab focus
+  never fired. Fixed to `Model_Editor.model_workshop.ModelWorkshop`.
+- Two other `Mdl_Editor` references in imgfactory.py also fixed.
+
+## May 2026 — Compact button fix (model + col)
+
+**Compact buttons now use panel width (`model_workshop.py` v105, `col_workshop.py`):**
+- `resizeEvent #vers 5` (col), `resizeEvent` (model): was passing `self.width()`
+  (full window ~1000px) to `apply_compact_buttons` — threshold never triggered.
+  Now uses `_middle_btn_row.width()` so icon-only mode activates when the
+  middle panel is actually narrow. Threshold lowered to 320px.
+- TXD workshop not affected (different toolbar pattern).
+
+## May 2026 — Model Workshop docked bleed root fix
+
+**Docked bleed root cause fixed (`model_workshop.py` v104):**
+- `_apply_theme #vers 6`: when docked, `self.setStyleSheet("")` was clearing
+  widget stylesheet so imgfactory dark-red theme bled through. Now sets
+  `self.setStyleSheet(ss)` on self when docked; standalone still sets QApplication.
+
+**`_apply_theme` missing in gui_layout_custom (`gui_layout_custom.py` v15):**
+- Added `_apply_theme #vers 1` — `_initialize_features` called it but it did
+  not exist, causing AttributeError on every startup.
+
+**Imgfactory `launch_model_workshop.py` v2:**
+- Fixed `col_workshop.main()` typo — should be `model_workshop.main()`.
+
+## May 2026 — QPainter engine==0 spam fixed, standalone launcher
+
+**QPainter engine==0 fixed (`model_workshop.py` v103):**
+- `COL3DViewport.paintEvent #vers 2`: added `isVisible`/size guard, `p.isActive()`
+  check, and `p.end()` at all exit points. Painter was firing before widget
+  was realized in embedded mode causing the spam.
+- `ModelWorkshop.paintEvent #vers 3`: added `standalone_mode` guard and
+  `painter.isActive()` check. Corner resize triangles only needed standalone.
+
+**Model-Workshop standalone launcher fixed (`launch_model_workshop.py` v2):**
+- Was importing `Mdl_Editor.mdl_workshop.MDLWorkshop` — path and class both wrong.
+  Fixed to `Mdl_Editor.model_workshop.ModelWorkshop`.
+
+## May 2026 — Model Workshop embedded launch rewritten
+
+**Model Workshop embedded launch matched to TXD pattern (`model_workshop.py` v102):**
+- `open_model_workshop #vers 5`: three fixes vs TXD:
+  1. `container.setAutoFillBackground(True)` — tab container now paints background.
+  2. `ModelWorkshop(container, main_window)` — positional args, container is Qt parent.
+  3. `workshop.show()` added after tab insertion — was never called in embedded mode.
+  Also adds DFF icon to tab label.
+
+## May 2026 — Model Workshop docked bleed fixed
+
+**Model Workshop bleed root cause (`model_workshop.py` v101):**
+- `open_model_workshop #vers 4`: missing `workshop.setWindowFlags(Qt.WindowType.Widget)`
+  after docked creation. TXD and COL both set this — it explicitly clears
+  `FramelessWindowHint` set in `__init__`, which is why they showed fine and
+  model_workshop bled on every theme.
+
+## May 2026 — DAT Browser bleed CONFIRMED FIXED
+
+**DAT Browser bleed-through — root causes found and fixed (3 files):**
+
+The bleed persisted through multiple attempts because it had three separate causes
+that all had to be resolved together.
+
+1. `gui_layout.py` v32 — `content_splitter.setAutoFillBackground` False to True.
+   The main splitter was not painting its own background.
+
+2. `dat_browser.py` v4 — `integrate_dat_browser #vers 6`: widget was parented to
+   `main_window` instead of `left_stack`. Qt paint coordinates were relative to
+   `main_window`, so content drew at wrong position over whatever was beneath.
+
+3. `dat_browser.py` v4 — `paintEvent #vers 1` and `showEvent #vers 1` added.
+   No background fill was happening before child widgets rendered. paintEvent now
+   fills Window palette colour first. showEvent forces repaint on every panel switch.
+
+## May 2026 — Model Workshop QPainter fix, DAT browser paint
+
+**Model Workshop docked bleed + QPainter crash fixed (`model_workshop.py` v100):**
+- `__init__ #vers 11`: `FramelessWindowHint` now only set when `standalone_mode`
+  is True. When docked as tab child, the flag broke QPainter (engine==0 spam)
+  and caused wrong colours/bleed. Standalone behaviour unchanged.
+
+**DAT Browser background clear (`dat_browser.py` v4):**
+- `paintEvent #vers 1`: fills Window palette colour before children paint.
+- `showEvent #vers 1`: calls `repaint()` each time panel becomes visible.
+
+## May 2026 — DAT browser parent fix (root cause)
+
+**DAT browser bleed root cause fixed (`dat_browser.py` v3):**
+- `integrate_dat_browser #vers 6`: widget was parented to `main_window` instead
+  of `left_stack` — Qt paint coordinates were wrong, causing DAT browser content
+  to draw over whatever was rendered before it. Parent now set to `left_stack`.
+- Duplicate `gl`/`left_stack` lookup removed.
+
+## May 2026 — Intro->DAT bleed fix
+
+**Right panel bleed fixed (`gui_layout_custom.py` v14):**
+- `_ensure_left_panel_visible #vers 2`: added `splitter.widget(1).repaint()` and
+  `splitter.update()` after `setSizes` — intro collapses right panel to 0px;
+  switching to DAT/Dir Tree now forces right panel to repaint on restore.
+- `_show_dat_browser #vers 5`: no logic change, version bump for tracking.
+- Dir Tree unaffected (intro never opened from Dir Tree context).
+
+## May 2026 — Panel bleed-through, repaint on stack switch
+
+**Panel switch bleed fixed (`gui_layout_custom.py` v13):**
+- `_show_dir_tree #vers 3`: `left_stack.repaint()` after `setCurrentIndex(0)`.
+- `_show_dat_browser #vers 4`: `left_stack.repaint()` after `setCurrentIndex(1)`.
+- `_show_intro_panel #vers 5`: `left_stack.repaint()` after `setCurrentIndex(2)`.
+  QStackedWidget was not repainting on page switch — previous panel content bled through.
+
+**DAT Browser internal splitter fixed (`dat_browser.py` v2):**
+- `DATBrowserWidget #vers 3`: internal `splitter.setAutoFillBackground` changed
+  False to True — same bleed root cause as content_splitter in gui_layout.py.
+
+## May 2026 — Bleed-through fix, Model Workshop open bug
+
+**Bleed-through rendering fixed (`gui_layout.py`, `welcome_screen.py`):**
+- `content_splitter.setAutoFillBackground` changed False to True — splitter
+  now paints its own background; intro/DAT browser no longer bleeds through
+  when panels collapse or switch.
+- `WelcomeScreen.__init__ #vers 1`: added `WA_OpaquePaintEvent` attribute and
+  `setAutoFillBackground(True)` — screen is fully opaque, no ghost pixels.
+
+**Model-Workshop open error dialog fixed (`Model-Workshop/Mdl_Editor/model_workshop.py`):**
+- `open_workshop #vers 4`: `App_name * " Error"` corrected to
+  `App_name + " Error"` — was a Python TypeError on any open failure.
+
+## April 2026 — Standalone structure fixes, theme-aware colors
+
+**Standalone repo structure fixed:**
+- Col-Workshop: `col_dialogs.py`, `col_display.py`, `col_gui_integration.py` moved to `gui/`
+- Txd-Workshop: `depends/` removed, files moved to `methods/`; `txd_context_menu.py` to `gui/`
+- Model-Workshop: `col_dialogs.py` moved to `gui/`
+- Radar-Workshop: `_get_ui_color` added to all 4 widget classes
+
+**TODOs tracked (from audit):**
+- `gui_template.py`: missing SVG icons for Model/Spheres/Boxes/Mesh/Vertices tabs
+- `gui_template.py`: dock/tearoff buttons need SVG icons
+- `col_workshop.py`: COL save/export/import stubs not implemented
+- `txd_workshop.py`: bumpmap preview, format conversion stubs
+- `right_click_actions.py`: DFF/TXD edit/view actions not implemented
+- `shortcuts.py`: search/find/debug shortcuts not implemented
+- `model_workshop.py`: OBJ import/export not implemented
+
+## April 2026 — TXD Workshop UI, DP5 Workshop major update, Bug fixes
+
+**Theme icon refresh fixed (`gui_layout.py`):**
+- `refresh_icons #vers 3`: added missing `get_search_icon` and `get_tree_icon`
+  imports. Fixed `f_entries_btn` using `get_twin_panel_icon` instead of
+  `get_tree_icon` — icons now update correctly on dark/light theme switch.
+
+**app_settings_system synced from master (`apps/utils/app_settings_system.py`):**
+- Updated from v65 to v69 to match App-Settings-System repo.
+
+### Build 324–335 — Menu system fixes, DP5 docked access, unified titlebar tool button
+
+**System UI mode crash fixed (`imgfactory.py`):**
+- `_apply_img_menu_orientation #vers 2`: `hasattr(gui_layout, 'menu_btn')`
+  returned True even when `menu_btn = None` (set explicitly in system UI mode).
+  Guard changed to `getattr(..., None) is not None` — no more crash on
+  Settings apply in system UI mode.
+
+**DP5 docked — internal menubar reappearing fixed (`gui_menu.py` v24):**
+- `_inject_tool_menu #vers 2`: removed block that called
+  `self.menu_bar.setVisible(True)` in custom UI mode. Native bar is
+  hard-clamped hidden; Menu button popup is the entry point in custom mode.
+
+**DP5 standalone corner resize handles restored (`dp5_workshop.py`):**
+- `_setup_corner_overlay #vers 3`: guards against non-frameless/non-standalone
+  mode, calls `overlay.show()` before `raise_()`.
+- `showEvent #vers 2`: two-shot timer (100ms + 400ms) so overlay raises
+  after layout settles and after all children render.
+- `resizeEvent #vers 1`: re-raises overlay 50ms after every resize.
+
+**DP5 docked — gap below menubar fixed (`dp5_workshop.py`):**
+- Toolbar not added to `main_layout` at all when docked — `setFixedHeight(0)`
+  was insufficient because child buttons with fixed sizes prevented the
+  container shrinking to zero. Skipping `addWidget()` eliminates the ghost space.
+
+**DP5 docked — menu access via titlebar `[DP5]` button:**
+- `dp5_workshop.py`: when docked, registers a `[DP5]` button in the imgfactory
+  custom titlebar (between `[Menu]` and `[Settings]`). Clicking pops up the
+  full DP5 menu (File/Edit/Picture/View/Tools/Platform) as a `QMenu` dropdown.
+- Internal `_menu_bar_container` kept hidden when docked — no second bar.
+- `_unregister_titlebar_tool_btn` called on tab change to hide the button.
+
+**Unified titlebar tool button — all workshops (`tool_menu_mixin.py` v2):**
+- `_register_titlebar_tool_btn`: added to `ToolMenuMixin` base so every
+  workshop inherits it automatically. Builds a `QMenu` from
+  `_build_menus_into_qmenu()` and registers with `gui_layout_custom`'s
+  `register_tool_menu_btn()`.
+- `_unregister_titlebar_tool_btn`: clears button on tab change.
+- Workshop short labels for titlebar button:
+  - COL Workshop → `[COL]`
+  - Model Workshop → `[DFF]`
+  - TXD Workshop → `[TXD]`
+  - DP5 Workshop → `[DP5]`
+- `gui_layout_custom.py v7`: `tool_menu_btn` QPushButton added between
+  `menu_btn` and `settings_btn`; `register_tool_menu_btn()` /
+  `unregister_tool_menu_btn()` / `_show_tool_menu_popup()` helpers added.
+- `imgfactory.py _update_tool_menu_for_tab #vers 2`: calls
+  `_register_titlebar_tool_btn()` / `unregister_tool_menu_btn()` on tab change.
+
+**Combined build number (`app_info.py` v2):**
+- `App_imgfactory_version = N` mirrors `Version: N` comment in `imgfactory.py`.
+- `get_full_build()` returns `"Build 335.78"` — release.fileversion.
+- Rule: increment `App_imgfactory_version` on every change to `imgfactory.py`.
+- Title bar and custom titlebar label both use `get_full_build()`.
+
+
+### Build 319–323 — Menu system unification, resize fixes, welcome screen height fix
+
+**Double menubar eliminated (`gui_menu.py` v23):**
+- `IMGFactoryMenuBar.__init__ #vers 2`: native Qt `self.menuBar()` is now
+  suppressed (`setVisible(False)`, `setFixedHeight(0)`, `setSizePolicy(Ignored)`)
+  *before* `_create_menus()` populates it. Previously the native bar was filled
+  with File/Edit/Settings/Tools menus and rendered on screen before the
+  suppression code in `_create_ui()` ran, producing two visible menu rows.
+- `menu_bar` pointer still starts on the native bar and is re-pointed to the
+  inline `_system_menu_bar` widget (embedded in the top button row) by
+  `imgfactory._create_ui()` after `gui_layout` builds it.
+
+**DP5 Workshop dual menu eliminated (`dp5_workshop.py` v4):**
+- Internal `_menu_bar_container` is now **standalone-only**. When docked,
+  it is always `setFixedHeight(0)` / hidden — imgfactory's top bar owns
+  the menus via `ToolMenuMixin` injection. Eliminates the second menu row
+  that appeared when DP5 docked into IMG Factory.
+- `set_menu_orientation #vers 5`: docked mode always suppresses the internal
+  bar regardless of style setting; explicitly notifies imgfactory to
+  inject/remove the tool menu via `menu_bar_system`.
+
+**Resize handles restored (`gui_layout.py` v6, `imgfactory.py`):**
+- `create_main_ui_with_splitters #vers 6`: `QSizeGrip` added at bottom-right
+  of main layout. Gives a native OS resize handle in system-titlebar mode
+  without requiring the custom corner overlay triangles.
+- `showEvent #vers 2`: corner overlay only created when `FramelessWindowHint`
+  is set — system titlebar mode now defers resize to KDE/Qt natively.
+- `mousePressEvent #vers 10`, `mouseMoveEvent #vers 4`, `mouseReleaseEvent #vers 4`:
+  all resize/drag logic gated behind `is_frameless` check. In system titlebar
+  mode events pass straight through to Qt/KDE.
+
+**Window geometry clamped to screen (`imgfactory.py`):**
+- `_restore_settings #vers 2`: after `restoreGeometry()`, window size and
+  position are clamped to `screen.availableGeometry()`. Fixes window going
+  off-screen due to stale saved geometry (e.g. from old double-menubar height
+  inflating the saved size). Stale geometry can be cleared with:
+  `python3 -c "from PyQt6.QtCore import QSettings; QSettings('XSeti','IMGFactory').remove('geometry')"`
+
+**Welcome screen height stretch fixed (`welcome_screen.py` v4, `imgfactory.py`):**
+- `_build_ui #vers 3`: removed stretch factor `1` from `root.addWidget(tabs, 1)`.
+  The stretch was telling Qt to demand all available vertical space, inflating
+  the entire window past the screen height on startup.
+- `__init__`: `setSizePolicy(Expanding, Preferred)` so height is governed by
+  `sizeHint` rather than infinite expansion.
+- Embed site in `imgfactory.py`: `ws.setMaximumHeight(600)` as a hard backstop.
+
+
+### Build 234 — DAT Browser: IMG/CDIMAGE fix, theme-aware UI overhaul
+
+**DAT Browser — IMG/CDIMAGE archives now visible:**
+- `gta_dat_parser.py _inject_enforced_imgs #vers 3`: `models/gta3.img` is always
+  loaded by the game executable for GTA3, VC, SA and SOL — it never appears in
+  any `.dat` file. Now injected into `load_log` with phase `"enforced"` so the
+  DAT Browser tree, Dump TXDs, and XRef all see it.
+- `_process_dat #vers 3`: IMG/CDIMAGE entries from `.dat` files are now appended
+  to `load_log` (previously only IDE/IPL were logged). This makes all CDIMAGE paths
+  in SOL's `gta_sol.dat` (`sol\cdimages\*.img`) visible in the tree.
+- `load #vers 5` + `load_from_dat`: both call `_inject_enforced_imgs(game_root)`
+  before parsing, so `gta3.img` appears whether loading via game root or direct dat path.
+- Dedup by normalised basename stem prevents `gta3.img` / `radartex.img` appearing
+  twice when they are listed in both the enforced set and an explicit CDIMAGE line.
+- DAT Browser load-order tree now shows IMG/CDIMAGE entries with file size badge.
+
+**DAT Browser — theme-aware stylesheet (no more black bleed):**
+- Root cause: `widget.setStyleSheet(big_ss)` overrides `QApplication` global
+  stylesheet for that widget and all children, causing black fallback on anything
+  not explicitly styled. Dir Tree worked because it never set a widget stylesheet.
+- Fix: `_apply_theme_stylesheet #vers 3` now sets only a minimal 2-rule override
+  (`alternate-background-color` for row colouring). Everything else inherits from
+  `QApplication.instance().setStyleSheet(app_settings.get_stylesheet())`.
+- `_on_theme_changed #vers 4` simplified — just calls `_apply_theme_stylesheet()`.
+
+**All workshops — same stylesheet fix:**
+- `col_workshop`, `txd_workshop`, `model_workshop`, `dp5_workshop`
+  `_apply_theme #vers 5`: applies `app_settings.get_stylesheet()` to `QApplication`
+  then calls `self.setStyleSheet("")` to clear any widget-level override.
+
+**Shared theme module `apps/methods/workshop_theme.py` (new):**
+- `get_theme_colors(main_window)` — reads app_settings, merges with dark defaults.
+- `build_stylesheet(colors)` — comprehensive stylesheet covering all Qt widget types.
+- `apply_workshop_theme(widget, main_window)` — used by dp5, dolphin dialog,
+  directory tree as a fallback when no app_settings is connected.
+
+**Model Workshop — open_model_workshop #vers 2:**
+- Docks in `main_tab_widget` tab when available; floats standalone otherwise.
+- Routes by extension: `.dff → open_dff_file()`, `.col → open_col_file()`,
+  `.img → load_from_img_archive()`.
+- Fixed `App_name * " Error"` string multiplication bug → correct error log.
+
+**Model Workshop — Combined DFF + TXD open dialog (`_open_dff_standalone #vers 2`):**
+- Two-row dialog: DFF path + optional TXD path.
+- Auto-find TXD checkbox: if same-stem `.txd` exists alongside the `.dff`,
+  fills TXD field automatically on Browse.
+- On accept: `open_dff_file(dff)` then `_load_txd_file(txd)` in one step.
+
+**Preview backgrounds — all three workshops:**
+- `COL3DViewport._set_theme_bg(palette)`: auto-picks `(245,245,245)` on light
+  themes, `(25,25,35)` on dark. Fires on first `paintEvent` only; user colour
+  picks lock `_theme_bg_set=True`.
+- `ZoomablePreview.bg_color = None` (was `QColor(42,42,42)`): paintEvent reads
+  palette lightness and picks appropriate background automatically.
+
+**gui_context.py — stub functions implemented:**
+- `edit_dff_model #vers 2`: extracts DFF from IMG to tempfile → Model Workshop.
+- `edit_txd_textures #vers 2`: calls `open_txd_workshop_docked`.
+- `view_dff_model`, `view_txd_textures`: delegate to edit counterparts.
+
+**imgfactory.py — `_on_tab_changed`:** added ModelWorkshop detection block.
+
+### Build 234 — DP5 Workshop: new tools, palette, FGBGSwatch, zoom, splitter
+
+**DP5 Workshop — New brush tools (in gadget grid):**
+- `TOOL_BLUR_BRUSH` (B): Gaussian-soften pixels in brush radius (3-pass box blur,
+  circular falloff). Continuous on mouse-drag.
+- `TOOL_SMUDGE` (U): Drag/smear pixels from previous mouse position, 40% blend strength.
+- `TOOL_LIGHTEN` (`,`): Dodge brush — adds +30 RGB with feathered falloff by distance.
+- `TOOL_DARKEN` (`.`): Burn brush — subtracts 30 RGB with feathered falloff.
+  All four preserve alpha channel.
+
+**DP5 Workshop — New SVG icons:** `dp_blur_brush_icon` (concentric rings),
+  `dp_smudge_icon` (curved drag trail), `dp_lighten_icon` (8-ray sun),
+  `dp_darken_icon` (crescent moon), `dp_seamless_op_icon` (4-tile wave grid),
+  `dp_colour_correct_icon` (RGB slider bars with coloured handles).
+
+**DP5 Workshop — Image operation buttons (right panel, above retro palette):**
+  4 × 32px icon buttons: Colour Adjustments, Seamless Tool, Snow Effect, Zoom Lens.
+  All use txd_tools.py dialogs and push undo before applying.
+
+**DP5 Workshop — Image tools (Image menu):**
+  Colour Adjustments, Seamless Tool, Snow Effect, Filters submenu
+  (Sharpen ×1.5, ×3, Blur r=1, Blur r=2, Emboss, Edge Detect).
+
+**DP5 Workshop — Zoom Lens window:**
+  Stay-on-top QWidget.Tool, 320×340px. Magnification slider 2–32×.
+  10fps QTimer reads canvas rgba directly, crops the viewport-centred region.
+  Single instance — re-focuses if already open. Image menu → Zoom Lens…
+
+**DP5 Workshop — Zoom range 0.05× – 64× (was 16×):**
+  All zoom paths updated: _set_zoom(), wheel, zoom-in button, settings spin.
+
+**DP5 Workshop — FGBGSwatch auto-resize:**
+  Removed `setFixedSize(64,48)` — now Expanding/Preferred with min 40×30.
+  Scales proportionally with right panel width via `heightForWidth(w)=0.75×w`.
+
+**DP5 Workshop — Image palette auto-wrap:**
+  `PaletteGrid` auto-fills columns = width ÷ cell_size on every resize.
+  Max height uncapped (was img_rows×12 fixed cap). `_fit_img_pal_height()`
+  called after canvas extraction to snap the scroll area to content height.
+
+**DP5 Workshop — User palette auto-cell:**
+  New `_AutoCellPaletteGrid` subclass: fixed column count, cell size =
+  width ÷ columns. Swatches always tile edge-to-edge regardless of panel width.
+
+**DP5 Workshop — Gadget bar fills available width:**
+  Column count = `max(min_cols, (panel_w − 20) ÷ (btn_sz + gap))`.
+  `min_cols` is from Settings (floor, not ceiling). Gadget grid reflows on
+  splitter drag via `_on_splitter_moved` (rebuilds only when column count changes).
+  Removed `setFixedWidth`, `QSizePolicy.Fixed`, and `setMaximumWidth(sizeHint)` —
+  all three were locking the panel and preventing the splitter from moving left.
+  With 24px icons: 150px→4 cols, 200px→5, 300px→8, 400px→11.
+
+**DP5 Workshop — Splitter position saved:**
+  `closeEvent` writes `[left, canvas, right]` sizes to dp5_workshop.json.
+  Restored via `QTimer.singleShot(0, setSizes)` on next open.
+
+**DP5 Workshop — Icon size fix:**
+  Removed silent `min(icon_sz, 24)` cap when docked — user's setting is
+  applied directly. Icon spinbox minimum lowered from 20 to 16px.
+
+**TXD Workshop — Right navbar 2-column grid:**
+  All preview controls (zoom/pan/BG/resize/checker/colour picker + 4 tool buttons)
+  converted from 40px single-column (560px tall, clips badly) to 28px 2-column
+  grid (~270px total). Tile cycle button removed (tiling in Tools menu only).
+
+**TXD Workshop — Left transform icon panel 2-column grid:**
+  17 buttons converted from single 45px column (~400px tall) to 2-column 78px
+  grid (~220px). `_place_icon_grid(n_cols)` can reflow to more columns.
+
+**TXD Workshop — XTD parser (renamed from RAGE):**
+  `apps/methods/xtd_textures.py` (was rage_textures.py). All public names:
+  `XTDDict`, `XTDTexture`, `open_xtd_dict`, `is_xtd_file`, `get_xtd_game`.
+  Hidden behind "All Texture Files" filter — no menu entry or documentation.
+
+**TXD Workshop — Texture tools:**
+  `ColourAdjustDialog`: brightness/contrast/hue/sat/sharpness/opacity/cutout/premultiply.
+  `SeamlessDialog`: wrap-blend, patch/heal, histogram-preserving, offset+mirror.
+  `SnowDialog`: layered snow with luminance-biased noise.
+  `scale_alpha_for_coverage()`: binary-search alpha scaling for SA foliage/fences.
+  All accessible via Tools menu and right navbar buttons.
+
+**Model Workshop — DFF→COL surface generation:**
+  `_dff_to_col_surfaces(single/batch)`: keyword-maps texture names to GTA surface IDs,
+  interactive assignment table, COL version selector, mesh face toggle.
+  Batch mode processes a directory of .dff files. COL menu added to Model Workshop.
+
+**Bug fixes:**
+- `txd_tools.py _apply_snow()`: `from scipy.ndimage import sobel` was outside
+  the try block. Moved inside try; `np.gradient()` fallback added.
+- `gui_layout.py edit_txd_file()`: `os` UnboundLocalError — `import os` inside
+  nested if, used at function level. Moved to top of try.
+- `txd_workshop.py _create_preview_controls()`: `QSize`, `QIcon`, `QPainter`,
+  `QPixmap`, `QByteArray`, `QSvgRenderer`, `SVGIconFactory` all imported inside
+  nested closures but used at function level. All hoisted to function top.
+- `_get_current_rgba()`: replaced non-existent `_get_selected_texture_index()`
+  with `self.selected_texture`.
+- `_set_current_rgba()`: replaced non-existent `_update_preview()` with
+  `_update_texture_info(selected_texture)`.
+- All tool methods (`_open_colour_adjust` etc.): replaced non-existent
+  `_set_status()` with `self.status_label.setText()` guarded by `hasattr`.
+- `model_workshop.py`: fixed `COLModelListWidget` → `ModelListWidget` (lines 9348, 9986).
+- `DP5 Workshop _AutoCellPaletteGrid`: `_fixed_cols` must be set before
+  `super().__init__()` since parent calls `_recalc_height()` in `__init__`.
+- `DP5 Workshop setup_ui()`: `QTimer` imported inside conditional `if _saved_sizes`
+  block but used unconditionally two lines later. Import hoisted above the if.
+
+## April 2026 — TXD Workshop, Model Workshop, XTD Parser, Bug Fixes
+
+### Build 233 — TXD Workshop texture tools + XTD parser + DFF→COL + UI fixes
+
+**TXD Workshop — Texture Tools:**
+- `ColourAdjustDialog`: Brightness / Contrast / Hue / Saturation / Sharpness / Opacity sliders,
+  Cutout Alpha Threshold (toggle + value), Premultiplied Alpha. Live before/after preview at 360px.
+- `SeamlessDialog`: 4 methods — Wrap Blend (gradient fade), Patch/Heal, Histogram-Preserving
+  Blend, Offset+Mirror. 1×1/2×2/3×3 tiled preview to evaluate seam quality. Pure Python/numpy.
+- `SnowDialog`: layered snow accumulation with luminance-biased noise.
+  B/W threshold, depth, coverage%, layers, tile controls.
+- `scale_alpha_for_coverage()`: binary search scales alpha channel so mip levels preserve
+  mip-0 opaque pixel fraction. Fixes SA foliage/fences disappearing at distance.
+- All tools accessible from Tools menu, preview sidebar buttons, and cycle tile button.
+
+**TXD Workshop — Right navbar (2-column icon grid):**
+- Tile preview cycle button: one click steps 1×1 → 2×2 → 3×3 → 1×1.
+  Icon updates each step to show the current grid pattern.
+- Tool buttons (2×2 grid): knob (Colour Adjustments), wave-grid (Seamless),
+  snowflake (Snow), shield-α (Alpha Coverage).
+- Transform icon panel docked: reduced from 32px/20px icon to 24px/16px.
+
+**XTD Parser (renamed from RAGE parser):**
+- `apps/methods/xtd_textures.py`: read-only RAGE texture dictionary importer.
+  RSC7 (GTA IV .wtd) and RSC8 (GTA V / RDR2 .ytd) formats.
+  DXT1/3/5, BC4, BC5, RGBA8, BGRA8 decoded in pure Python.
+  Opened via File > Open like any .txd — no menu entry, no documentation.
+- All internal names renamed: `XTDDict`, `XTDTexture`, `open_xtd_dict`,
+  `is_xtd_file`, `get_xtd_game`, `_open_xtd_file`.
+
+**Model Workshop — DFF→COL surface generation:**
+- `_dff_to_col_surfaces(single, batch)`: parses DFF geometry materials,
+  maps texture names to GTA surface type IDs using keyword matching
+  (road/concrete/sand/grass/water/wood/metal/glass/rock/foliage/snow etc.).
+- Interactive surface assignment table with per-row ComboBox override.
+- COL version selector (COL1/2/3), mesh face toggle.
+- Batch mode: pick directory, processes all .dff files.
+- Generates COLModel with bounds from DFF bounding sphere + full face/vertex geometry.
+- COL menu in Model Workshop: Build COL from DFF / Batch COL from DFFs /
+  Convert Surface / New Surface.
+
+**DP5 Workshop docked:**
+- Icons capped at 24px when docked (was up to 64px).
+- Column count stays 3+ (reduces height, not width).
+
+**New SVG icons in SVGIconFactory:**
+- `knob_icon`: rotary dial (Colour Adjustments)
+- `seamless_icon`: 4-square grid with wave (Seamless tool)
+- `snow_icon`: 8-arm snowflake (Snow effect)
+- `alpha_coverage_icon`: shield with italic 'a' (Alpha Coverage)
+
+**Bug fixes:**
+- `gui_layout.py edit_txd_file()`: `os` UnboundLocalError — `import os` was inside
+  a nested `if` block but used at function scope level. Moved to top of `try` block.
+- `txd_workshop.py _create_preview_controls()`: `QSize` UnboundLocalError —
+  `from PyQt6.QtCore import QSize` was inside a deeply nested closure but `QSize`
+  was used throughout the function. All imports hoisted to function top.
+  Same fix applied to `QIcon`, `QPainter`, `QPixmap`, `QByteArray`, `QSvgRenderer`,
+  `SVGIconFactory`.
+- `_get_current_rgba()`: removed call to non-existent `_get_selected_texture_index()`.
+  Now uses `self.selected_texture` directly.
+- `_set_current_rgba()`: removed call to non-existent `_update_preview()`.
+  Now calls `_update_texture_info(selected_texture)`.
+- All tool methods (`_open_colour_adjust`, `_open_seamless_tool`, `_open_snow_tool`,
+  `_open_alpha_coverage`, `_set_tiled_preview`): removed calls to non-existent
+  `_set_status()`. Now uses `self.status_label.setText()` with `hasattr` guard.
+- `model_workshop.py`: fixed pre-existing `COLModelListWidget` → `ModelListWidget`
+  name errors at lines 9348 and 9986.
+
+## April 2026 — DP5 Workshop: Builds 278-299
+
+### Build 299 — Amiga .info import rewritten from SDK docs
+- `_decode_amiga_info` v2: correct DiskObject/Gadget/Image struct offsets per official AmigaOS SDK
+- Reads Image.Depth from struct at `base+8` — handles 2bp/4bp/8bp correctly
+- DrawerData offset: 78 + (56 if do_DrawerData != NULL)
+- Bitplane data at `base + 20` (immediately after single Image struct, not after two)
+- Fallback depth: tries img_depth, then 4, then 2
+
+### Build 298 — Inline text, clash visualiser, character editor, sprite editor
+- `_CanvasTextOverlay`: floating widget on canvas at click point — type directly, Enter commits, Escape cancels. No dialog.
+- Colour clash visualiser (View menu, toggleable): red overlay on 8×8 cells with >2 colours — ZX Spectrum/C64/MSX
+- `_CharFontEditor`: 8×8 or 8×16 bit grid editor, 128-char set, shift/invert/clear, load binary, export binary/C header/ASM
+- `_CharGrid`: click+drag bit toggle widget
+- `_SpriteEditor`: slice canvas into sprite frames, platform presets (ZX/C64/Amiga/NES/Sega etc), zoom, export sprite sheet PNG
+- `_SpriteView`: zoomed sprite display with transparency checkerboard and pixel grid
+- TODO.md added to DP5_Workshop folder
+
+### Build 297 — Amiga PAL/NTSC/HiRes/RTG + canvas size fixes
+- Amiga platform submenu: OCS PAL/NTSC LowRes, OCS HiRes 640×256, OCS PAL interlace 320×512
+- ECS PAL/HiRes, AGA PAL/HiRes variants
+- RTG: 640×480, 800×600, 1024×768, 720×576 PAL broadcast, 720×480 NTSC broadcast
+- Fixed Atari 2600: 160×96 → 160×192 (correct NTSC kernel)
+- Fixed Atari 7800: 320×200 → 160×240 (correct NTSC)
+- Added NES 256×240, SNES 256×224, GB/GBC 160×144, GBA 240×160 canvas sizes
+- Added Mega Drive 320×224, Master System/SG-1000 256×192, Game Gear 160×144, PC Engine 256×240
+- Atari Falcon: added 640×480 hi-res variant
+- Nimbus: added 640×250 hi-res variant
+
+### Build 296 — ZX Spectrum family complete
+- Spectrum 128K, ZX Next L2 (320×256, 640×256), ZX Next ULA (256×192)
+- Timex TS2068 standard + HiRes 512×192 B&W mode (Bayer dither)
+- Pentagon (Soviet clone — identical to Spectrum)
+- Jupiter Ace (B&W Forth machine)
+- All with correct palettes, constraints, canvas presets
+
+### Build 295 — SNES/GBC/GBA correct 15-bit palettes
+- SNES: full 32768-colour palette with correct 5-bit scale (val*8+val//4)
+- GBC and GBA: same 32768-colour space as SNES (same S-PPU hardware)
+- Pixel grid visible at zoom ≥2 (was ≥4)
+- 9-bit colour space shared by ST/MD/MSX2/PCE documented and confirmed correct
+
+### Build 294 — Platform menu submenus + new machines
+- Platform menu reorganised into submenus: Amiga/Commodore/Sinclair-ZX/Atari/Amstrad/MSX/Other
+- Added: Atari 5200, 7800, Lynx 160×102, Falcon 320×200, Jaguar 320×240
+- Added: Amstrad CPC+ 4096col, PCW 720×256 green phosphor, NC100/200 480×128
+- Added: RM Nimbus 320×250 16-colour
+- PaletteGrid paint fix: no gap for cells <4px (invisible 2px cells fixed)
+- Status bar refreshes canvas size/colour profile on every _set_status call
+
+### Build 293 — Load button options + snap-to-canvas-size
+- Load button: left-click shows 4-option menu (was single action)
+- New: "Snap to pal, canvas size…" — resizes to canvas size then snaps
+- New: "Snap to pal, canvas size (dither)…" — same with dither picker
+- Fixed _apply_bit_depth: string mismatch "32bit" vs "32b" caused out_img unbound crash
+
+### Build 292b/c — Restore wiped methods + PIL fixes
+- Restored: _export_amiga_icon, _export_ico, _export_svg_icon, _export_tga, _export_dds, _export_pcx, _import_icns, _export_icns
+- Fixed: img.LANCZOS → Image.LANCZOS in _write_icns
+- Fixed: SVG buf walrus operator in batch convert
+
+### Build 292+ — Amiga .info + batch converters
+- Correct bitplane offset formula confirmed against icon collection
+- NewIcon IM1= ASCII-encoded format decoded
+- OS3.5 ICONFACE: clean "not supported" message
+- Batch Convert Icons: .info ↔ ICO ↔ ICNS ↔ PNG ↔ SVG
+- Batch Convert Textures: resize, power-of-two snap, DDS/TGA/PCX/PNG/BMP/JPG/TIFF
+
+### Build 291 — Hierarchical palette menu
+- User palette button: 12 family submenus (Amiga/Commodore/Sinclair/Atari/Amstrad/Acorn/Tandy/MSX/Nintendo/Sega/NEC/Other)
+
+### Build 290 — Two clear snap load options
+- File: "Snap to pal…" (hard) and "Snap to pal (dither)…" (asks method)
+- Picture: same two options for existing canvas
+- Palette dither hidden button removed — menu-only
+
+### Build 289 — Zoom right-click + IFF 24-bit
+- Zoom gadget right-click: Zoom In / Out / Box Zoom / Fit
+- Box zoom: drag cyan rectangle, zoom to fit selection
+- Custom IFF ILBM decoder: 24-bit true colour, HAM6/HAM8/EHB, PackBits
+
+### Builds 283-288 — Palettes and formats
+- 45 retro platform palettes with accurate hardware colour spaces
+- SNES, GBC, GBA, Sega GG, STe all corrected
+- Full 4096-colour palettes at 2px cells (STe, GG, Amiga OCS)
+- Full 32768-colour palettes at 1px cells (SNES, GBC, GBA)
+- Import: IFF, TIFF, GIF (animated→frames), TGA, PCX, DDS, PSD, Amiga .info, ICNS
+- Export: TGA, DDS BGRA8, PCX, ICNS multi-size
+
+### Builds 279-282 — Render As + palette fixes
+- Picture → Render As: ASCII art, ANSI blocks, PETSCII (C64), Teletext mosaic
+- ZX80/ZX81 palettes: B&W with correct constraints
+- NES, Game Boy, Mega Drive, SAM Coupé, MSX2, PC Engine, Apple II added
+- Amiga OCS, Amstrad CPC, Atari ST, Plus/4 all corrected to hardware-accurate values
+
+#this belongs in root /ChangeLog.md - Version: 35
+
+## April 2026 — DP5 Workshop: Build 249–292b
+
+### Build 292b — Restore wiped export methods
+- `dp5_workshop.py`: restored `_export_amiga_icon`, `_export_ico`, `_export_svg_icon`, `_export_tga`, `_export_dds`, `_export_pcx`, `_import_icns`, `_export_icns` — all lost in batch convertor insertion
+
+### Build 292+ — Amiga .info import fix + batch converters
+- `_import_amiga_info` v3: correct bitplane offset formula — `DiskObject(78) + DrawerData(56 if present) + 2×Image_struct(40)` — confirmed against icon collection
+- `_decode_amiga_info`: detects Classic-bitplane (68 icons), NewIcon IM1= (1), OS3.5 ICONFACE (45, reported unsupported), GlowIcon ARGB
+- `_decode_newicon_im1`: decodes ASCII-encoded NewIcon IM1=/IM2= ToolType image data
+- `_batch_convert_icons`: File → Batch Convert → Icons dialog — source folder, input/output format, progress + log
+- `_batch_convert_textures`: File → Batch Convert → Textures dialog — resize option, power-of-two snap, DDS/TGA/PCX/PNG/BMP/JPG/TIFF
+- `_write_amiga_info`, `_write_icns`: shared helpers used by batch convertor and export methods
+
+### Build 292 — Amiga icon any-size export + IFF 24-bit import
+- `_export_amiga_icon` v2: any canvas size (was hard-coded 32×32), correct DiskObject+Gadget+Image struct, word-aligned 4-plane encoding, WB 16-colour palette
+- `_import_iff` v2: delegates to full custom decoder
+- `_decode_iff_ilbm`: handles 24-bit true colour (tested on ps2_modscr.iff 1024×768), 8-bit indexed, HAM6/HAM8/EHB, PackBits decompression
+- `_iff_find_chunk`, `_iff_unpack_body`: IFF ILBM parsing helpers
+
+### Build 291a — Fix missing _snap_canvas_to_user_palette
+- Restored method deleted during dither refactor
+
+### Build 291 — Hierarchical palette menu
+- `_show_retro_menu`: flat list replaced with 12 family submenus — Amiga/Commodore/Sinclair/Atari/Amstrad/Acorn/Tandy-Dragon/MSX/Nintendo/Sega/NEC/Other
+
+### Build 290 — Two clear snap-to-palette load options
+- File menu: `Open + snap to palette…` (hard snap) and `Open + snap to palette (dithered)…` (asks Floyd-Steinberg/Bayer/Checkerboard)
+- Picture menu: `Snap to user palette` and `Snap to user palette (dithered)…`
+- `_snap_canvas_to_user_palette_dither`: QInputDialog method picker
+- Palette dither hidden button removed — dither via menu only
+
+### Build 289a — Fix crashes
+- `_import_amiga_info` v2: QPoint unpacking crash fixed — `_preview_start/end` stored as `(tx,ty)` tuples not QPoint
+- `get_dp5_workshop_icon` v4: SVG path data on single lines — fixes `qt.svg: Invalid path data; path truncated` warnings
+
+### Build 289 — Zoom tool right-click mode menu + Open+snap dither
+- `_zoom_mode_menu`: right-click zoom gadget → Zoom In / Zoom Out / Box Zoom / Zoom to Fit
+- `_set_zoom_mode`: sets mode, updates tooltip, cursor (CrossCursor for box, SizeAll for out)
+- Box zoom: drag cyan dashed rectangle → zoom to fit selection, scroll to centre
+- `_import_bitmap_snap_user_pal` v2: uses current dither mode in title + snap
+
+### Build 288 — Full IFF ILBM decoder
+- Custom decoder handles 24-bit, 8-bit, HAM6/HAM8/EHB, PackBits — PIL only used as fallback
+
+### Build 287 — Palette grid fix + ZX80/81 differentiated
+- `PaletteGrid.set_colors/set_palette_raw` v3: 4096-colour palettes use 64 cols×1px = 64×64px square (was 16px wide — invisible)
+- ZX80: hard threshold B&W (character cell mode); ZX81 WRX: Bayer 4×4 dither
+
+### Build 286 — Extended import/export formats
+- Import: IFF, TIFF, GIF (animated→timeline), TGA, PCX, DDS, PSD, Amiga .info, Apple ICNS, Windows ICO, SVG
+- Export: TGA, DDS (BGRA8 128-byte header), PCX, Apple ICNS (multi-size PNG chunks)
+- File → Import submenu; File → Batch Convert submenu added
+- Removed duplicate `_export_scr`
+
+### Build 285 — Palette dither toggle (later moved to menu in Build 290)
+- `_apply_user_palette_dither`: Floyd-Steinberg, Bayer 4×4, Checkerboard implementations
+
+### Build 284 — PaletteGrid large palette support + ZX dithering
+- Auto-scale cell size: 1px for 4096+, 2px for 512+, 4px for 256+, 8px for 64+
+- `_apply_zx8x_dither`: Bayer ordered dither for ZX81 WRX platform mode
+- `threshold_bw` / `bayer_bw` sentinel in platform palette snap
+
+### Build 283 — Accurate platform palettes
+- Atari ST: 9-bit (512 colours); Atari STe: 12-bit (4096); Atari Falcon: 16-bit
+- Amiga ECS: 64 colours (32 + EHB half-brightness)
+- Sega MS: 6-bit 64col; Mega Drive: 9-bit 512col; Game Gear: 12-bit 4096col
+- CoCo 1/2 + Dragon 32/64: Motorola 6847 8-colour; CoCo 3: GIME 64-colour
+- Acorn BBC/Electron: 8-colour; Archimedes: 64 of 16.7M
+- GBC/GBA: 15-bit 32768; SNES: 15-bit sample; NES PPU: 64 entries
+- MSX2 V9938: 512-colour (same scale as Atari ST)
+
+### Build 282 — Picture → Render As
+- ASCII art (brightness→character ramp), ANSI block art (▀ half-blocks 16col), PETSCII (C64 2×2 quad blocks), Teletext (2×3 mosaic 8col)
+- All offer text/binary export (.txt, .ans, .prg, .tti)
+
+### Build 281 — ZX80 + ZX81 added
+- `zx80`: B&W 2-colour palette, hard threshold constraint, 256×192 canvas preset
+- `zx81`: B&W 2-colour palette, Bayer dither (WRX mode), menu label clarified
+
+### Build 280 — New platform palettes
+- NES, Game Boy (green + grey pocket), Mega Drive, SAM Coupé (128col), MSX2, PC Engine, Apple II Lo/Hi-Res, BBC Micro
+
+### Build 279 — Palette corrections
+- Amiga OCS: corrected (was greyscale ramp); Amstrad CPC: correct 27-colour 3×3×3 grid; Atari ST: correct midtones; Plus/4: correct TED chip colours
+
+### Build 278 — Standalone repo synced; drop-in folder structure
+- `X-Seti/Deluxe-Paint-Clone---Img-Factory` updated to Build 292; README updated with full feature list; header updated to reflect standalone/drop-in usage
+
+#this belongs in root /ChangeLog.md - Version: 34
+
+## April 2026 — DP5 Workshop: full paint editor suite, imgfactory integration
+
+### DP5 Workshop — standalone repo
+- `X-Seti/Deluxe-Paint-Clone---Img-Factory` created as a separate MIT-licensed repository
+- Contains `dp5_workshop.py`, `README.md`, `TODO.md`, `LICENSE`
+- Usable standalone (`python3 dp5_workshop.py`) or embedded in any PyQt6 app
+- Synced from `apps/components/DP5_Workshop/dp5_workshop.py`
+
+### Build 248 — Revert toolbar changes, Paint Edit in right panel, TXD → DP5
+- `gui_layout_custom.py`: reverted — removed misplaced Load/Save/Import/Export/Undo/PaintEdit from main IMG Factory toolbar
+- `gui_layout.py`: **Paint Edit** added to Editing Options right panel (after Dff Edit), calls `open_dp5_workshop_docked()`
+- `txd_workshop.py`: `_open_paint_editor()` v4 — replaced old `dp5_paint_editor.py` with full `DP5Workshop`
+  - Opens as modal QDialog, pre-loads selected texture RGBA into canvas, auto-fits zoom
+  - **Apply to Texture** writes edited RGBA bytes back into texture dict and marks TXD modified
+
+### Build 247 — DP5 icon redesign + SVG icons on all toolbar/gadget buttons
+- `get_dp5_workshop_icon()` v2: solid filled palette body, bold outline circles, thick brush stroke — readable at 16px+
+- `get_clear_canvas_icon()`: bold X on canvas rect — used on CLR gadget button
+- `get_brushes_icon()`: three brush shapes — used on Brushes toolbar button
+- All `dp5_workshop.py` toolbar buttons now carry SVG icons:
+  - Load=`open_icon`, Save=`save_icon`, Import=`import_icon`, Export=`export_icon`, Undo=`undo_icon`, Brushes=`get_brushes_icon`
+  - UNDO gadget = `undo_icon`, CLR gadget = `get_clear_canvas_icon`
+- `icon_color` now defined in `_create_right_panel` (was missing, causing gadget icon errors)
+
+### Build 246c — Window/app icon in taskbar and alt-tab
+- `DP5Workshop.__init__`: `setWindowIcon(get_dp5_workshop_icon(64))`
+- `open_dp5_workshop()`: sets icon on standalone window
+- `__main__`: `setApplicationName("DP5 Workshop")`, `setOrganizationName("X-Seti")`, `app.setWindowIcon()` — replaces python3/X in taskbar with DP5 palette icon
+
+### Build 246b — Toolbar reorder
+- Layout: `[Settings*] ←title→ [Load][Save][Import][Export][Undo] [Brushes] [Theme] [_][□][×]*`
+- Settings and window chrome visible only in standalone mode
+- Import/Export tooltips note older format support (IFF, BMP)
+
+### Build 246a — Fix `_activate_stamp_mode` missing
+- `_on_brush_mgr_selected` had orphaned `_activate_stamp_mode` body merged into it as a string literal
+- Restored as proper method: selects `TOOL_STAMP` and sets status bar message
+
+### Build 246 — DP5 Workshop fully integrated into IMG Factory
+- `imgfactory.py`: `open_dp5_workshop_docked()` — same pattern as AI/TXD/COL/Model workshops
+  - Finds existing tab, creates QWidget container, adds tab with DP5 icon, registers in tool taskbar
+  - `open_dp5_workshop_standalone()` convenience wrapper
+  - Both accept optional `file_path` to auto-load an image on open
+- `gui_layout_custom.py`: `[Paint Edit]` button with DP5 icon in toolbar; left-click = docked, right-click = standalone; `_show_paint_context_menu()`; `dp5` key in tool routing dict and context menu branch
+- `imgfactory_svg_icons.py`: `get_dp5_workshop_icon()` — paint palette SVG, attached as `SVGIconFactory.dp5_workshop_icon`
+- `dp5_workshop.py`: `_import_bitmap_path(path)` for imgfactory docked call; `BrushManager` floating panel; `_toggle_brush_manager()`; toolbar rebuilt with file action buttons; DP5 palette icon in title
+
+### Build 245 — Stamp mode, brush thumbnail, moveable floating objects
+- `TOOL_STAMP`: click anywhere to place copy buffer — ghost preview follows cursor at 55% opacity
+- `BrushThumbnail` widget (right of FG/BG swatch): checkerboard background, shows copy buffer preview, cyan active border, click = stamp mode, right-click = clear
+- After Ctrl+X / Ctrl+C thumbnail updates automatically; Ctrl+V enters stamp mode instead of dropping at centre
+- `_activate_stamp_mode()`, `_clear_brush()`, `_sync_brush_thumb()` wired throughout
+- Escape exits stamp mode back to Select tool
+
+### Build 244 — SVG icon lookup in `_make_tool_icon`
+- `_SVG_MAP` dict maps shape keys → `SVGIconFactory.dp_*_icon()` method names
+- When `ICONS_AVAILABLE` and the shape has an entry, calls the SVG method with tile background
+- Falls back to QPainter renderer for shapes not yet in the map
+- Currently mapped: pencil, eraser, fill, spray, picker, line, zoom
+
+### Build 243 — Right-click fill toggle for shape tools
+- `SHAPE_FILL_PAIRS`: rect/circle/triangle/polygon/star/lasso each have outline + filled variants
+- Right-click the button toggles outline ↔ filled; icon updates immediately; tooltip shows current mode
+- `ShapeToolButton` subclass intercepts right-click at Qt event level (no menu flash)
+- `_shape_fill_state` dict tracks each shape's current mode; `_toggle_shape_fill()` updates icon + canvas tool live
+- `TOOL_FILLED_TRIANGLE`, `TOOL_FILLED_POLYGON`, `TOOL_FILLED_STAR`, `TOOL_FILLED_LASSO` added
+- Lasso fill: on release, draws outline then flood-fills from centroid
+
+### Build 242 — Move tool as floating object + arrow key nudge
+- `TOOL_MOVE` with copy buffer → auto-floats buffer at existing position
+- Arrow keys: float active → nudge 1px (Shift = 10px); no float → scroll viewport
+- Enter/Return stamps float permanently and clears buffer
+- `nudge_float(dx, dy)` canvas helper
+- Spacebar + drag = temporary canvas pan with any tool (ClosedHandCursor feedback)
+- `TOOL_MOVE` removed from gadget bar (pan is middle-mouse + spacebar)
+
+### Build 241 — Zoom-to-cursor + scrollable canvas (architecture overhaul)
+- `DP5Canvas.sizeHint()` returns `tex_w × zoom, tex_h × zoom` — scroll area knows actual content size
+- `setSizePolicy(Fixed, Fixed)` + `setWidgetResizable(False)` — canvas drives its own size
+- `setAlignment(AlignCenter)` — canvas centred when smaller than viewport
+- `paintEvent` draws at `(0,0)` — no more manual `self.offset` subtraction
+- `_widget_to_tex` / `_tex_to_widget` simplified — no offset arithmetic
+- `_set_zoom(z, anchor_widget_pos)` — resizes canvas, adjusts scrollbars to keep anchor fixed: `ratio = z/old_z; new_scroll = (old_scroll + anchor) * ratio - anchor`
+- `wheelEvent` passes mouse position mapped to scroll area viewport as anchor
+- Pan via `_scroll_by(dx, dy)` → scrollbar setValue (middle-mouse and spacebar)
+- `_get_scroll_area()` walks parent chain to find containing QScrollArea
+
+### Build 240 — Moveable selection with paste-as-you-go
+- Committed selection: click inside → `_lift_selection()` (copies pixels, clears source, sets `_sel_floating=True`)
+- Drag moves `_sel_float_pos`; release keeps float active (re-draggable)
+- Float renders at 85% opacity with yellow dashed border tracking mouse
+- Click outside → `_stamp_selection(keep_floating=False)` stamps permanently
+- Escape while floating → `cancel_sel_move()` restores `_sel_float_orig` backup (full canvas backup before lift)
+- `_point_in_sel_rect()`, `_lift_selection()`, `_stamp_selection()`, `cancel_sel_move()` canvas helpers
+- `TOOL_SELECT` in `mousePressEvent`: detects click inside vs outside committed selection
+
+### Builds 233–239 — DP5 Workshop core construction
+- Single-file merge: DP5Canvas, PaletteGrid, FGBGSwatch, ColorPickerWidget, ColorPalPresetsMixin, DP5Settings, DP5SettingsDialog, DP5Workshop
+- 19 tools: pencil, eraser, fill, spray, picker, curve, line, rect, circle, triangle, polygon, star, select, lasso, zoom, text, stamp (+ filled variants)
+- `_make_tool_icon()`: normalised 48-unit QPainter icons with dark tile + white silhouette; active = inverted
+- Adaptive column gadget bar (2/3/4 cols, auto from icon size); `_rebuild_right_panel()` via QSplitter.replaceWidget
+- DP5Settings JSON at `~/.config/imgfactory/dp5_workshop.json`
+- Retro palettes: Amiga OCS/AGA/AGA-WB, C64, ZX Spectrum, Amstrad CPC, Atari 800/2600, ULA Plus
+- COL1/COL2/COL3 binary ops, Bézier curve (click-to-add control points, dbl-click commit), polygon (click vertices, dbl-click close+fill), text placement (QPainter render to canvas), brush size slider, snap-to-grid
+- IFF ILBM export, PIL-based transforms (flip, rotate, scale, invert, brighten/darken)
+- Zoom: Ctrl+scroll, click-zoom tool, menu presets 0.05×–16×
+- Selection: marquee, lasso, cut/copy/paste, select-all, deselect; Ctrl+A/X/C/V/Z/Y
+
+
+## March–April 2026 — TXD GTA3/VC fixes, COL ops, log dedup
 
 ### Build 180 — Fix PAL8/PAL4 pixel data offset (4-byte size prefix)
 - **Root cause**: GTA3/VC TXD PAL8 layout is `palette(1024 raw) + pixel_size(4) + pixels(w*h)`
@@ -2449,3 +4628,146 @@ See `TODO.md` for planned features and fixes.
 - `apps/components/Img_Browser/img_browser.py`
 - `imgfactory.spec` (new)
 
+
+---
+
+#### DFF Parser fix (May 2026)
+
+**Mesh explosion on VC vehicles (dff_parser.py Version 6):**
+- RW 0x0C02FFFF morph target layout corrected: bsphere(16)+has_pos(4)+has_nrm(4) header precedes triangle data inside morph target, parser was reading triangles before this 24-byte header giving garbage indices
+- Added `_parse_binmesh()` method: EXTENSION chunk (0x03) containing BinMesh plugin (0x050E) was never parsed; BinMesh indices now take precedence over inline triangles when present
+- All triangle indices now 100% valid across VC vehicle DFFs (banshee, angel, mule tested)
+- Fix applied to all copies: `apps/methods/`, `apps/components/Col_Editor/depends/`, `apps/components/Model_Editor/depends/`
+
+**DFF frame world transform (_DFFGeometryAdapter, model_workshop.py Version 118):**
+- `_DFFGeometryAdapter` was using raw local vertex coordinates with no frame transform
+- Added `_world_matrix()` static method: walks frame parent chain accumulating rotation matrices and translations
+- Each geometry piece (wheels, chassis, extras) now renders at correct world position
+- `_display_dff_model` updated to pass `dff_model` and `atomic` to adapter constructor
+
+---
+
+#### COL Workshop sphere fix (May 2026)
+
+**COL1 sphere parsing wrong axis (col_workshop_parser.py Version 9):**
+- `parse_spheres` and `parse_spheres_alt` read `center(12) + radius(4)` but COL1 binary stores `radius(4) + center(12)`
+- Result was negative/wrong radii and sphere centers displaced by one field width
+- Fixed in all 4 copies across Img-Factory-1.6 and Col-Workshop repos
+- Verified against vehicles.col binary: all 19 deluxo spheres now have positive radii, centers within vehicle bounds
+
+**Files changed:**
+- `apps/methods/dff_parser.py`
+- `apps/components/Col_Editor/depends/dff_parser.py`
+- `apps/components/Model_Editor/depends/dff_parser.py`
+- `apps/components/Model_Editor/model_workshop.py`
+- `apps/methods/col_workshop_parser.py`
+- `apps/components/Col_Editor/depends/col_workshop_parser.py`
+- `apps/components/Model_Editor/depends/col_workshop_parser.py`
+
+
+---
+
+#### Path Workshop (May 2026)
+
+**New: apps/components/Path_Workshop/path_workshop.py Version 1**
+Three tabs covering all VC/SA text path formats:
+- Train Paths — train.dat + train2.dat (x,y,z,speed,flags per waypoint, loop terminator)
+- Flight Paths — flight.dat/2/3 (VC dodo AI routes, x,y,z,speed)
+- Static Paths — spath0.dat VC text format (x,y,z nodes terminated by END)
+
+PathMapCanvas: 2D overhead view with pan (middle/right drag), zoom (wheel), node drag.
+Direction arrows on path lines, fit-all [F], labels toggle, radar background loader.
+Waypoint panel: full XYZS field editor, add/del/move-up/move-down.
+smart_file_router updated: train*.dat, flight*.dat, spath0.dat → Path Workshop.
+
+**Files changed:**
+- `apps/components/Path_Workshop/path_workshop.py` (new)
+- `apps/methods/smart_file_router.py`
+
+
+## May 16 2026 - Vehicle Workshop rendering + GTA3/VC/SA texture/wheel fixes
+
+**PAL8 texture decoding (txd_parser.py):**
+- GTA3/VC: mip data starts immediately after 88-byte header — no outer size prefix
+- Palette is 1024 bytes BGRA, followed by 4-byte pixel size field, then w*h indices
+- Previously read 4-byte prefix that doesn't exist → garbage mip_size → wrong data
+- Fixed offset: palette=mip_data[:1024], indices=mip_data[1028:1028+w*h]
+- SA D3D9 uncompressed: all formats now decode (A8R8G8B8, RGB565, ARGB1555, ARGB4444, L8, A8L8)
+
+**GTA3/VC/SA vehicle IDE wheel data (_parse_sa_vehicles_ide v4):**
+- GTA3 uses default.ide (no vehicles.ide), wheel IDs 160-166
+- VC uses default.ide, wheel IDs 237-256 (different from GTA3)
+- SA uses vehicles.ide, wheel scale in fields [12]/[13], class-based wheel type
+- GTA3 field layout: wheelId=[10], wheelScale=[11] (no animFile field)
+- VC/SA field layout: animFile at [6], wheelId=[11], frontScale=[12], rearScale=[13]
+- dat_browser now caches default.ide as vehicles_ide key for GTA3/VC
+
+**Texture matching (_try_txd_data):**
+- Fixed: armytruk8bit (in miss) vs armytruk8bit128 (in TXD) — strip numeric suffix on both sides
+- GTA3 txd.img sibling scan for vehicle TXDs not in gta3.img
+- SA: vehiclegeneric256.txd etc. searched inside gta3.img by exact name
+
+**TXD Workshop:**
+- Segfault fix: cancel_btn.disconnect() → try: cancel_btn.clicked.disconnect()
+- Tab name strips streaming suffix (barracks_hli9ksta → barracks)
+- Tab name updated to selected TXD name when entry chosen from list
+- PAL8 BGRA flag fixed: GTA3/VC PC palette is BGRA not RGBA
+
+**Vehicle Workshop right panel (v3):**
+- Compact rows: Wire/Solid/Tex same row, Backface+Grid same row
+- Reset+Light same row, Assembly All/Damage/LOD same row
+- Play+Speed same row, Wheels+Steer same row
+- Model Info collapsible, Edit buttons with icons
+
+**Wheel rendering:**
+- Wheels hidden by default, shown with Show Wheels toggle
+- Wheel type from IDE numeric ID (exact match)
+- Wheel scale from IDE (SA/VC/GTA3)
+- Left wheel mirror correct (no X negation after world transform)
+- misc.txd + wheels.txd loaded additively for wheel textures
+- _get_wheel_geom_data v2: exact frame name match first
+
+**Known bugs to fix (bug day):**
+- Double min/close/max buttons in Vehicle Workshop tab
+- Car Mods tab label shows "(SA)" for all games
+- Edit buttons truncated text (Dummies→Dummie)
+- generic.txd loading irrelevant non-vehicle textures
+- First model load occasionally shows no textures (GL context timing)
+
+## May 17 2026 - Vehicle Workshop fixes continued
+
+**SA vehicles.ide wheel scale (dat_browser.py):**
+- Root cause: vehicles.ide found first, then default.ide overwrote it — break only exited variant loop not fname loop
+- Fix: `if key in vdata: continue` prevents overwrite — SA uses vehicles.ide, GTA3/VC use default.ide fallback
+
+**Frame tree checkboxes (vehicle_workshop.py):**
+- Missing ItemIsEnabled flag — checkboxes appeared but clicks did nothing
+- Fix: explicit flags `ItemIsUserCheckable | ItemIsEnabled | ItemIsSelectable`
+- Camera no longer resets on visibility toggle — save/restore yaw/pitch/dist/pan around rebuild
+- _hidden_frames filter applied in load_all_geometries (dff_viewport.py)
+
+**Handling.cfg SA boat/plane/bike entries (handling_editor.py):**
+- Lines starting with % (boat), $ (plane/heli), ! (bike), & (animation) skipped
+- HandlingEntry.from_line v2 — these have different field layouts from cars
+
+**carcols.dat SA format (vehicle_workshop.py):**
+- SA uses col/car/end section headers, R,G,B tab-formatted palette
+- CarColsParser.load v2 — section state machine, strips # comments, handles SA format
+
+**Wheel size slider:**
+- Range expanded to ±30% (was ±10%)
+- _wheel_scale_mult applied in load_all_geometries before wheel transform
+
+**Streaming suffix display (model_viewer.py, vehicle_workshop.py):**
+- _hli9ksta, _dfheih3 etc. stripped from DFF list display names
+- Raw entry.name preserved in UserRole for all file operations
+
+**sentinel.txd reload reduced:**
+- Removed duplicate singleShot(500, _auto_load_shared_txds) in _meta_then_wheels
+- _toggle_show_wheels already calls _auto_load_shared_txds — was loading 4x per vehicle switch
+
+**Docked-tool settings tab contribution (app_settings_system.py, apps/utils):**
+- New SettingsDialog._collect_settings_contributions() - scans main_window.main_tab_widget for any open tab exposing get_settings_contribution() (duck-typed, no specific-tool import) and pulls its tabs + apply callback into the main app Settings dialog
+- First consumer: Map Workshop (get_settings_contribution() added in map_workshop.py, split out of the old monolithic _show_workshop_settings) -  "the map workshop settings dialogue when standalone, which isn't available when it's docked with img factory, so we need a way to push those settings into img factory's settings, as extra tabs"
+- Any future embedded tool (Model Workshop, COL Workshop, etc.) gets the same integration for free by implementing the same method name
+- Each contributed apply callback wrapped individually in _apply_settings so one tool's broken settings logic can't block another's or the dialog's own save
