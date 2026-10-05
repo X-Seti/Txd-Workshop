@@ -1,4 +1,7 @@
-#this belongs in root /ChangeLog.md - Version: 40
+#this belongs in root /ChangeLog.md - Version: 41
+
+## Oct 05 2026 - More platforms
+- Xbox and PS2 edit/save (PS2 mipmaps), III iOS/Android UNC/PVR, LCS iOS PSP TXDs, VCS/LCS xtx/chk; working Save buttons; undo fixes. Build needs scipy.
 
 ## Oct 05 2026 - Save fixes
 - New TXD writer: all PC formats, III/VC and SA layouts kept, flags and renames saved, bumpmaps in a game-safe plugin, unsaved-changes prompt.
