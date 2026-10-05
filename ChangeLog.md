@@ -1,4 +1,7 @@
-#this belongs in root /ChangeLog.md - Version: 39
+#this belongs in root /ChangeLog.md - Version: 40
+
+## Oct 05 2026 - Save fixes
+- New TXD writer: all PC formats, III/VC and SA layouts kept, flags and renames saved, bumpmaps in a game-safe plugin, unsaved-changes prompt.
 
 ## Oct 05 2026 - Sync from IMG Factory: icons
 - New Reset View, Convert Format, Compress/Uncompress, Rotate CW/CCW icons; theme and ribbon fixes; DP5 paint window update.
