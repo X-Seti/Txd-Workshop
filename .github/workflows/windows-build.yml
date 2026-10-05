@@ -1,4 +1,4 @@
-# this belongs in root /.github/workflows/windows-build.yml - Version: 2
+# this belongs in root /.github/workflows/windows-build.yml - Version: 3
 # X-Seti - September30 2026 - Txd Workshop - Windows exe build (PyInstaller)
 name: Windows build
 
@@ -19,6 +19,21 @@ jobs:
         run: git config --global core.autocrlf false
 
       - uses: actions/checkout@v4
+
+      # App Settings System is a dependency (utils, themes, images).
+      - name: Checkout App Settings System
+        uses: actions/checkout@v4
+        with:
+          repository: X-Seti/App-Settings-System
+          path: _app_settings
+
+      - name: Add shared utils, themes, images
+        run: |
+          foreach ($d in 'utils', 'themes', 'images') {
+            if (Test-Path apps/$d) { Remove-Item apps/$d -Recurse -Force }
+            Copy-Item _app_settings/apps/$d apps/$d -Recurse
+          }
+          Remove-Item _app_settings -Recurse -Force
 
       - uses: actions/setup-python@v5
         with:

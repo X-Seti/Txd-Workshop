@@ -1,4 +1,10 @@
-#this belongs in root /ChangeLog.md - Version: 38
+#this belongs in root /ChangeLog.md - Version: 39
+
+## Oct 05 2026 - Sync from IMG Factory: icons
+- New Reset View, Convert Format, Compress/Uncompress, Rotate CW/CCW icons; theme and ribbon fixes; DP5 paint window update.
+
+## Oct 05 2026 - App-Settings-System dependency
+- apps/utils, themes, images now come from X-Seti/App-Settings-System; Windows build checks it out; README shows symlink setup.
 
 ## Sep 30 2026 - Save fix, multi-select, resize, Paint window
 - Ctrl+S keeps pixel edits; Shift/Ctrl multi-select edits; new Resize dialog; Paint opens DP5 in its own window; themed mipmap/bumpmap windows.

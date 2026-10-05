@@ -7,6 +7,11 @@ Download `Txd_Workshop_Windows.zip` from the `windows-build` release, unzip, run
 Settings save in `settings/` beside the exe. Custom ribbon icons go in `icons/`.
 
 ## Run from source
+Needs [App-Settings-System](https://github.com/X-Seti/App-Settings-System) beside this repo:
+```
+git clone https://github.com/X-Seti/App-Settings-System ../App-Settings-System
+for d in utils themes images; do ln -s ../../App-Settings-System/apps/$d apps/$d; done
+```
 ```
 pip install PyQt6 numpy Pillow
 python3 launch_txd_workshop.py
