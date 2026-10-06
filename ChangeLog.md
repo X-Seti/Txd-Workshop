@@ -1,4 +1,13 @@
-#this belongs in root /ChangeLog.md - Version: 231
+#this belongs in root /ChangeLog.md - Version: 233
+
+## Oct 06 2026 - Rage versions, IV depth
+- GTA IV IMGs: columns relabelled Rage Flags / Rage Version (e.g. v110 Drawable, v8 Texture Dict); plain entries show file type.
+- Bully Gamebryo entries show Gamebryo version. TXD info: Rage/Gamebryo Version label.
+- GTA IV/Bully DXT textures showed 4bit; now 16bit like RW TXDs.
+
+## Oct 06 2026 - GTA IV city placements
+- Dat Browser GTA IV: streamed *.wpl in map IMGs loaded (432 files, 157k placements); cars 56 / strbig 64 byte records.
+- IV IDE mlo (interior) headers indexed; all placements resolve, 0 warnings/errors.
 
 ## Oct 06 2026 - GTA IV IMG save, texture names
 - GTA IV IMG entry sizes were resource flags (reads ran to file end); now blocks*2048-pad.
