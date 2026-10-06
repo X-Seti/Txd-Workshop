@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
-#this belongs in root /txd_workshop.spec - Version: 3
-# X-Seti - September30 2026 - Txd Workshop - PyInstaller build spec (Windows)
+#this belongs in root /txd_workshop.spec - Version: 4
+# X-Seti - October06 2026 - Txd Workshop - PyInstaller build spec (Windows)
 
 """
 PyInstaller spec for the standalone TXD Workshop Windows build.
@@ -9,18 +9,21 @@ Build: pyinstaller txd_workshop.spec  ->  dist/Txd_Workshop/Txd_Workshop.exe
 
 ##Methods list -
 # _app_data
+# _copy_settings
 # _make_icon
 # _version_file
 
 import os
 
+from PyInstaller.utils.hooks import collect_submodules
+
 ROOT = os.path.abspath(SPECPATH)
 
 
-def _app_data(): #vers 1
-    """Every non-Python file under apps/, kept at the same relative path."""
+def _app_data(): #vers 2
+    """Every non-Python file under apps/ (themes, images, icons), symlinks followed."""
     out = []
-    for base, dirs, files in os.walk(os.path.join(ROOT, 'apps')):
+    for base, dirs, files in os.walk(os.path.join(ROOT, 'apps'), followlinks=True):
         dirs[:] = [d for d in dirs if d != '__pycache__']
         for name in files:
             if name.endswith(('.py', '.pyc', '.log')):
@@ -28,6 +31,15 @@ def _app_data(): #vers 1
             src = os.path.join(base, name)
             out.append((src, os.path.relpath(base, ROOT)))
     return out
+
+
+def _copy_settings(): #vers 1
+    """Root settings/ beside the exe, where frozen builds read it."""
+    import shutil
+    src = os.path.join(ROOT, 'settings')
+    if os.path.isdir(src):
+        shutil.copytree(src, os.path.join(DISTPATH, 'Txd_Workshop', 'settings'),
+                        dirs_exist_ok=True)
 
 
 def _make_icon(): #vers 1
@@ -75,7 +87,8 @@ a = Analysis(
     pathex=[ROOT],
     binaries=[],
     datas=_app_data() + [(os.path.join(ROOT, 'appfactory.settings.json'), '.')],
-    hiddenimports=['PyQt6.QtSvg', 'PIL.Image', 'numpy', 'pygame', 'pygame._sdl2.controller'],
+    hiddenimports=['PyQt6.QtSvg', 'PIL.Image', 'numpy', 'scipy', 'pygame', 'pygame._sdl2.controller']
+                  + collect_submodules('apps.utils'),
     excludes=['tkinter'],
     noarchive=False,
 )
@@ -90,3 +103,4 @@ exe = EXE(
     upx=False,
 )
 coll = COLLECT(exe, a.binaries, a.datas, upx=False, name='Txd_Workshop')
+_copy_settings()
