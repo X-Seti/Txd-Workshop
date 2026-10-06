@@ -1,4 +1,7 @@
-#this belongs in root /ChangeLog.md - Version: 224
+#this belongs in root /ChangeLog.md - Version: 225
+
+## Oct 06 2026 - Dat Browser GTA IV profile
+- GTA IV game/profile: gta.dat common:/platform:/ paths, images.txt IMG list, IV IDE objs (synthetic IDs), binary .wpl reader (hashes resolved).
 
 ## Oct 05 2026 - GTA IV, Bully PC, shared TXD reader
 - GTA IV .wtd (RSC5): read, edit, save in place; xtd_textures IV reader fixed (was RSC7 guess, never loaded).
