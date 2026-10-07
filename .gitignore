@@ -11,3 +11,4 @@ dist/
 apps/images
 apps/utils
 apps/themes
+*.7z
