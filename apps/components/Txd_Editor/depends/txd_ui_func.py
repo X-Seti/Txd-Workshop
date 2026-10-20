@@ -525,9 +525,9 @@ class TXDUIMixin: #vers 1
         layout.setSpacing(4)
 
         # Header label
-        self._textures_header = QLabel("Textures")
-        self._textures_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        layout.addWidget(self._textures_header)
+        #self._textures_header = QLabel()
+        #self._textures_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        #layout.addWidget(self._textures_header)
 
         #    Mini toolbar: 4 icon buttons — only shown when docked          
         # (toolbar has these too; in docked mode the toolbar is hidden)
