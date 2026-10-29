@@ -1,4 +1,4 @@
-#this belongs in apps/components/Txd_Editor/depends/txd_logic_func.py - Version: 15
+#this belongs in apps/components/Txd_Editor/depends/txd_logic_func.py - Version: 16
 # X-Seti - October 07 2026 - IMG Factory 1.6 - TXD Workshop logic
 
 """
@@ -1366,7 +1366,7 @@ class TXDLogicMixin: #vers 1
             if self.main_window and hasattr(self.main_window, 'log_message'):
                 self.main_window.log_message(f"Error loading TXD list: {str(e)}")
 
-    def _load_game_txd_list(self, root, rescan=True): #vers 1
+    def _load_game_txd_list(self, root, rescan=True): #vers 2
         """List every texture file in the game: loose files and entries inside IMGs."""
         from apps.methods.game_file_list import fill_game_list, game_list_excludes, scan_game_files
         if rescan or getattr(self, '_game_txd_items', None) is None or self._game_txd_root != root:
@@ -1379,7 +1379,7 @@ class TXDLogicMixin: #vers 1
         if hdr:
             hdr.setText(f"TXD Files  ({shown})")
         if self.main_window and hasattr(self.main_window, 'log_message'):
-            self.main_window.log_message(f"TXD Workshop: {shown} texture file(s) in {root} ({hidden} excluded)")
+            self.main_window.log_message(f"{self.App_name}: {shown} texture file(s) in {root} ({hidden} excluded)")
 
     def _txd_list_menu(self, pos): #vers 1
         """Right-click on the TXD file list."""
@@ -1610,7 +1610,7 @@ class TXDLogicMixin: #vers 1
             QMessageBox.information(self, "Success",
                 f"Created new texture:\n{texture_name}\nSize: {width}x{height}")
 
-    def _create_new_txd(self): #vers 3
+    def _create_new_txd(self): #vers 4
         """Create a new empty TXD file"""
         if not self._confirm_discard():
             return
@@ -1628,7 +1628,7 @@ class TXDLogicMixin: #vers 1
             self._clear_modified()
             self._clear_undo()
 
-            self.setWindowTitle(f"TXD Workshop: {name}")
+            self.setWindowTitle(f"{self.App_name}: {name}")
             self._set_save_enabled(True)
 
             if self.main_window and hasattr(self.main_window, 'log_message'):
@@ -2406,7 +2406,7 @@ class TXDLogicMixin: #vers 1
             view_name = "Alpha" if self._current_view_state == 1 else "Overlay"
             self.main_window.log_message(f"Alpha invert {status} ({view_name} view)")
 
-    def load_from_img_archive(self, img_path): #vers 1
+    def load_from_img_archive(self, img_path): #vers 2
         """Load TXD list from IMG archive"""
         try:
             if self.main_window and hasattr(self.main_window, 'current_img'):
@@ -2417,11 +2417,11 @@ class TXDLogicMixin: #vers 1
                 self.current_img.open()
 
             img_name = os.path.basename(img_path)
-            self.setWindowTitle(f"TXD Workshop: {img_name}")
+            self.setWindowTitle(f"{self.App_name}: {img_name}")
             self._load_img_txd_list()
 
             if self.main_window and hasattr(self.main_window, 'log_message'):
-                self.main_window.log_message(f"TXD Workshop loaded: {img_name}")
+                self.main_window.log_message(f"{self.App_name} loaded: {img_name}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to load IMG: {str(e)}")
 
@@ -2607,7 +2607,7 @@ class TXDLogicMixin: #vers 1
         """File name placed in the last used folder for save dialogs."""
         return os.path.join(self._start_dir(), os.path.basename(name or ''))
 
-    def _remember_dir(self, file_path: str): #vers 1
+    def _remember_dir(self, file_path: str): #vers 2
         """Store the folder of an opened file as last_dir."""
         import json
         path = self._ribbon_config_path()
@@ -2619,7 +2619,7 @@ class TXDLogicMixin: #vers 1
         try:
             path.write_text(json.dumps(data, indent=2))
         except Exception as e:
-            print(f"[TXDWorkshop] last_dir not saved: {e}")
+            print(f"[{self.App_name}] last_dir not saved: {e}")
 
     def _show_img_entry_textures(self, data: bytes, name: str): #vers 1
         """Show a non-PC IMG texture entry (PS2, PSP, mobile, IV, Bully)."""
@@ -2629,7 +2629,7 @@ class TXDLogicMixin: #vers 1
             self._detect_txd_info(data)
         self._show_textures(texs, data, kind, f"{name} [{len(texs)} textures]")
 
-    def _entry_texture_names(self, entry) -> list: #vers 1
+    def _entry_texture_names(self, entry) -> list: #vers 2
         """Texture names inside an IMG entry, cached per open IMG."""
         cache = self.__dict__.setdefault('_entry_names', {})
         key = (id(self.current_img), getattr(entry, 'name', ''))
@@ -2639,7 +2639,7 @@ class TXDLogicMixin: #vers 1
                 data = self._extract_txd_from_img(entry)
                 cache[key] = texture_names(data, entry.name) if data else []
             except Exception as e:
-                print(f"[TXDWorkshop] names for {getattr(entry, 'name', '?')}: {e}")
+                print(f"[{self.App_name}] names for {getattr(entry, 'name', '?')}: {e}")
                 cache[key] = []
         return cache[key]
 
@@ -2671,7 +2671,7 @@ class TXDLogicMixin: #vers 1
                 self.main_window.log_message(f"Extract error: {str(e)}")
             return None
 
-    def _load_txd_textures(self, txd_data, txd_name): #vers 17
+    def _load_txd_textures(self, txd_data, txd_name): #vers 18
         """Load textures from TXD data with detailed structural parsing, log output, and granular control"""
         try:
             from PyQt6.QtWidgets import (QProgressDialog, QMessageBox, QDialog,
@@ -3016,7 +3016,7 @@ class TXDLogicMixin: #vers 1
             # Update window title and parent tab
             import re as _re
             clean_name = _re.sub(r'_[a-z0-9]{6,12}(?=\.txd$|$)', '', txd_name, flags=_re.IGNORECASE)
-            self.setWindowTitle(f"TXD Workshop: {clean_name} ({len(textures)} textures)")
+            self.setWindowTitle(f"{self.App_name}: {clean_name} ({len(textures)} textures)")
             if self.main_window and hasattr(self.main_window, 'main_tab_widget'):
                 tw = self.main_window.main_tab_widget
                 for i in range(tw.count()):
@@ -3795,7 +3795,7 @@ class TXDLogicMixin: #vers 1
         self._clear_modified()
         self._log(f"Saved texture DB: {len(edited)} texture(s), {len(paths)} file(s)")
 
-    def _close_txd(self): #vers 1
+    def _close_txd(self): #vers 2
         """Close the open TXD (asks first when there are unsaved changes)."""
         if not self._confirm_discard():
             return
@@ -3808,7 +3808,7 @@ class TXDLogicMixin: #vers 1
             self.texture_table.setRowCount(0)
         self._clear_modified()
         self._clear_undo()
-        self.setWindowTitle("TXD Workshop")
+        self.setWindowTitle(self.App_name)
 
     def _confirm_discard(self) -> bool: #vers 1
         """True when there are no unsaved changes or the user discards them."""
@@ -5400,7 +5400,7 @@ class TXDLogicMixin: #vers 1
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open IMG: {str(e)}")
 
-    def open_txd_file(self, file_path=None): #vers 10
+    def open_txd_file(self, file_path=None): #vers 11
         """Open standalone TXD file with version detection"""
         try:
             if not self._confirm_discard():
@@ -5435,7 +5435,7 @@ class TXDLogicMixin: #vers 1
                                 "to load the full texture database."
                             )
                     except Exception as _e:
-                        print(f"[TXDWorkshop] Mobile DB error: {_e}")
+                        print(f"[{self.App_name}] Mobile DB error: {_e}")
                     return
 
                 # Route mobile texture DB files (.txt / .dat)
@@ -5501,7 +5501,7 @@ class TXDLogicMixin: #vers 1
 
                 # Update window title with version info
                 self.setWindowTitle(
-                    f"TXD Workshop: {os.path.basename(file_path)} "
+                    f"{self.App_name}: {os.path.basename(file_path)} "
                     f"[{self.txd_version_str}]"
                 )
 
@@ -5527,7 +5527,7 @@ class TXDLogicMixin: #vers 1
         st['title'] = self.windowTitle()
         return st
 
-    def _doc_restore(self, st): #vers 1
+    def _doc_restore(self, st): #vers 2
         """Show a saved tab: attributes back, table refilled."""
         for a in self._DOC_ATTRS:
             setattr(self, a, st.get(a))
@@ -5537,7 +5537,7 @@ class TXDLogicMixin: #vers 1
         if self.texture_list and self.selected_texture is None:
             self.texture_table.selectRow(0)
         self._set_save_enabled(bool(self._txd_modified))
-        self.setWindowTitle(st.get('title') or "TXD Workshop")
+        self.setWindowTitle(st.get('title') or self.App_name)
 
     def _doc_open(self, file_path): #vers 1
         self.open_txd_file(file_path)
@@ -5837,7 +5837,7 @@ class TXDLogicMixin: #vers 1
                 coverage, new_cov, target)
             if hasattr(self, 'status_label'): self.status_label.setText(msg)
 
-    def _open_xtd_file(self, file_path: str): #vers 4
+    def _open_xtd_file(self, file_path: str): #vers 5
         """Open .wtd (GTA IV, editable) or .ytd (GTA V/RDR2, read-only)."""
         try:
             from apps.methods.xtd_textures import open_xtd_dict, get_xtd_game
@@ -5910,7 +5910,7 @@ class TXDLogicMixin: #vers 1
             if hasattr(self, 'texture_table') and self.texture_table.rowCount():
                 self.texture_table.selectRow(0)
                 self._on_texture_selected()
-            self.setWindowTitle(f"TXD Workshop: {name} [GTA {rd.game}]")
+            self.setWindowTitle(f"{self.App_name}: {name} [GTA {rd.game}]")
 
             # Status bar hint that this is read-only
             self._set_status(
@@ -5944,11 +5944,11 @@ class TXDLogicMixin: #vers 1
         self.txd_platform_name = "GTA IV PC"
         self._show_textures(texs, data, 'wtd', f"{name} [GTA IV, {len(texs)} textures]")
 
-    def _log(self, msg: str):  #vers 1
+    def _log(self, msg: str):  #vers 2
         """Safe logging — uses print() since TXDWorkshop has no log_message."""
-        print(f"[TXDWorkshop] {msg}")
+        print(f"[{self.App_name}] {msg}")
 
-    def _open_mobile_texture_db(self, file_path: str): #vers 1
+    def _open_mobile_texture_db(self, file_path: str): #vers 2
         """Open a mobile texture database (.txt+.toc+.dat+.tmb quad-file set).
         Supports SA/VC iOS (PVRTC) and Android (ETC1) mobile texture formats."""
         try:
@@ -5978,7 +5978,7 @@ class TXDLogicMixin: #vers 1
             self.current_txd_name = os.path.basename(file_path)
             platform_str = "iOS (PVRTC)" if db.is_ios else "Android (ETC1)"
             self.setWindowTitle(
-                f"TXD Workshop: {db.name} [{platform_str} — {len(real_textures)} textures]")
+                f"{self.App_name}: {db.name} [{platform_str} — {len(real_textures)} textures]")
 
             self._display_mobile_textures(db)
 
@@ -6009,7 +6009,7 @@ class TXDLogicMixin: #vers 1
         self._show_textures(texs, b'db', 'mobile_db',
                             f"{db.name} [{db.platform} texture DB, {len(texs)} textures]")
 
-    def _show_textures(self, textures, data: bytes, kind: str, title: str): #vers 2
+    def _show_textures(self, textures, data: bytes, kind: str, title: str): #vers 3
         """Fill the table from a parsed texture list of any format."""
         from apps.methods.txd_splice import tag_loaded_texture
         self.current_txd_data = data
@@ -6025,7 +6025,7 @@ class TXDLogicMixin: #vers 1
             self._add_texture_to_table(t)
         self._clear_modified()
         self._clear_undo()
-        self.setWindowTitle(f"TXD Workshop: {title}")
+        self.setWindowTitle(f"{self.App_name}: {title}")
         if self.texture_list and hasattr(self, 'texture_table'):
             self.texture_table.selectRow(0)
         self._log(f"Opened {title}")
@@ -6101,7 +6101,7 @@ class TXDLogicMixin: #vers 1
         self._detect_txd_info(data)
         self._show_textures(texs, data, 'inplace', f"{name} [PSP, {len(texs)} textures]")
 
-    def _open_ps2_txd(self, file_path: str): #vers 4
+    def _open_ps2_txd(self, file_path: str): #vers 5
         """Open a GTA PS2 TXD (all games/regions — device_id 0 or 6).
 
         Populates self.texture_list and texture_table exactly like a regular
@@ -6147,7 +6147,7 @@ class TXDLogicMixin: #vers 1
             dev = textures[0].get('device_id', 0) if textures else 0
             game_hint = 'SA' if dev == 6 else 'LC/VC'
             self.setWindowTitle(
-                f"TXD Workshop: {name} [PS2/{game_hint} — {len(textures)} textures]")
+                f"{self.App_name}: {name} [PS2/{game_hint} — {len(textures)} textures]")
             self._log(f"Opened PS2 TXD: {name} — {len(textures)} textures "
                       f"(device_id={dev}, {game_hint})")
 
@@ -7023,11 +7023,11 @@ class TXDLogicMixin: #vers 1
         # If more than 90% match, flag as suspicious
         return (matches / samples) > 0.9
 
-    def _load_settings(self): #vers 2
+    def _load_settings(self): #vers 3
         """Load settings from config file"""
         import json
 
-        settings_file = get_user_config_dir() / 'txd_workshop_settings.json'
+        settings_file = get_user_config_dir() / f'{self.config_key}_settings.json'
 
         try:
             if os.path.exists(settings_file):
@@ -7038,11 +7038,11 @@ class TXDLogicMixin: #vers 1
         except Exception as e:
             print(f"Failed to load settings: {e}")
 
-    def _save_settings(self): #vers 3
+    def _save_settings(self): #vers 4
         """Save settings to config file"""
         import json
 
-        settings_file = get_user_config_dir() / 'txd_workshop_settings.json'
+        settings_file = get_user_config_dir() / f'{self.config_key}_settings.json'
 
         try:
             settings = {
