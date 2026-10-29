@@ -1,4 +1,4 @@
-#this belongs in apps/components/Txd_Editor/depends/txd_logic_func.py - Version: 16
+#this belongs in apps/components/Txd_Editor/depends/txd_logic_func.py - Version: 17
 # X-Seti - October 07 2026 - IMG Factory 1.6 - TXD Workshop logic
 
 """
@@ -99,6 +99,7 @@ TXD Workshop logic - TXD load/save, texture edits, import/export, mipmaps, bumpm
 # _open_colour_adjust
 # _open_filters_dialog
 # open_img_archive
+# _open_iv_model_textures
 # _open_iv_wtd
 # _open_lc_mobile_txd
 # _open_mipmap_manager
@@ -180,7 +181,7 @@ from apps.methods.txd_dialogs import BumpmapManagerWindow, MipmapManagerWindow
 from apps.methods.txd_versions import detect_txd_version, get_game_from_version, get_platform_name, get_version_capabilities, is_bumpmap_supported, validate_txd_format
 from apps.methods.img_factory_settings import get_user_config_dir
 
-_DROP_EXTS = ('.txd', '.wtd', '.nft', '.xtx', '.chk', '.pvr', '.img', '.png', '.jpg', '.jpeg', '.bmp', '.tga', '.dds', '.gif', '.tiff', '.webp')
+_DROP_EXTS = ('.txd', '.wtd', '.wdr', '.wft', '.wdd', '.nft', '.xtx', '.chk', '.pvr', '.img', '.png', '.jpg', '.jpeg', '.bmp', '.tga', '.dds', '.gif', '.tiff', '.webp')
 
 class TXDLogicMixin: #vers 1
     """logic methods for TXDWorkshop."""
@@ -3665,7 +3666,7 @@ class TXDLogicMixin: #vers 1
             self._log(f"Rebuild error: {e}")
             return None
 
-    def _rebuild_special(self) -> bytes: #vers 7
+    def _rebuild_special(self) -> bytes: #vers 8
         """Save bytes for mobile, PSP, Stories, IV, Bully PC, PVR (layout kept)."""
         from apps.methods.txd_splice import texture_signature, rebuild_inplace_txd
         kind, data = self._txd_kind, self.current_txd_data
@@ -3676,6 +3677,8 @@ class TXDLogicMixin: #vers 1
             return rebuild_inplace_txd(data, self.texture_list)
         if kind == 'mobile_db':
             raise ValueError("Texture databases save with Save (Ctrl+S), not Save As")
+        if kind == 'iv_model':
+            raise ValueError("Textures inside a GTA IV model are read-only: export them or drag into a TXD")
         if kind in ('wtd', 'nif'):
             from apps.methods.xtd_textures import write_iv_wtd
             from apps.methods.nif_textures import write_nif_textures
@@ -5400,7 +5403,7 @@ class TXDLogicMixin: #vers 1
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open IMG: {str(e)}")
 
-    def open_txd_file(self, file_path=None): #vers 11
+    def open_txd_file(self, file_path=None): #vers 12
         """Open standalone TXD file with version detection"""
         try:
             if not self._confirm_discard():
@@ -5408,7 +5411,7 @@ class TXDLogicMixin: #vers 1
             if not file_path:
                 file_path, _ = QFileDialog.getOpenFileName(
                     self, "Open TXD File", self._start_dir(),
-                    "All Texture Files (*.txd *.nft *.xtx *.txt *.dat *.toc *.tmb *.chk *.wtd *.ytd *.pvr);;TXD Files (*.txd);;Bully PC (*.nft *.txd);;GTA IV (*.wtd);;XTX Textures (*.xtx);;Mobile DB — open .dat or .txt (*.dat *.txt);;Mobile DB sidecar (*.toc *.tmb);;PS2 Splash (*.chk);;PowerVR (*.pvr);;All Files (*)"
+                    "All Texture Files (*.txd *.nft *.xtx *.txt *.dat *.toc *.tmb *.chk *.wtd *.ytd *.wdr *.wft *.wdd *.pvr);;TXD Files (*.txd);;Bully PC (*.nft *.txd);;GTA IV (*.wtd);;GTA IV model textures (*.wdr *.wft *.wdd);;XTX Textures (*.xtx);;Mobile DB — open .dat or .txt (*.dat *.txt);;Mobile DB sidecar (*.toc *.tmb);;PS2 Splash (*.chk);;PowerVR (*.pvr);;All Files (*)"
                 )
             if file_path:
                 self._remember_dir(file_path)
@@ -5450,6 +5453,11 @@ class TXDLogicMixin: #vers 1
                 # Stories .chk / .xtx texture lists (PS2/PSP)
                 if file_path.lower().endswith(('.chk', '.xtx')):
                     self._open_stories_file(file_path)
+                    return
+
+                # GTA IV models: their embedded texture dictionary (read-only)
+                if _ext in ('.wdr', '.wft', '.wdd'):
+                    self._open_iv_model_textures(file_path)
                     return
 
                 #    Undocumented: XTD texture dicts (.wtd/.ytd)               
@@ -5514,7 +5522,7 @@ class TXDLogicMixin: #vers 1
     #    File tab hooks for DocTabsMixin (apps/methods/doc_tabs.py)
 
     _DOC_KIND = "TXD"
-    _DOC_FILTER = ("All Texture Files (*.txd *.nft *.xtx *.txt *.dat *.chk *.wtd *.ytd *.pvr);;"
+    _DOC_FILTER = ("All Texture Files (*.txd *.nft *.xtx *.txt *.dat *.chk *.wtd *.ytd *.wdr *.wft *.wdd *.pvr);;"
                    "TXD Files (*.txd);;All Files (*)")
     _DOC_ATTRS = ('_txd_kind', 'current_txd_data', 'current_txd_name', 'current_txd_path', 'texture_list',
                   'selected_texture', 'txd_capabilities', 'txd_device_id', 'txd_game', 'txd_platform_name',
@@ -5924,6 +5932,27 @@ class TXDLogicMixin: #vers 1
             import traceback
             QMessageBox.critical(self, "Error", f"Failed to open XTD dict:\n{e}")
             traceback.print_exc()
+
+    def _open_iv_model_textures(self, file_path: str): #vers 1
+        """Textures embedded in a GTA IV .wdr / .wft / .wdd (read-only: export or drag to a TXD)."""
+        from apps.methods.wdr_model import wdr_embedded_textures
+        name = os.path.basename(file_path)
+        try:
+            with open(file_path, 'rb') as f:
+                data = f.read()
+            texs = wdr_embedded_textures(data, True)
+        except Exception as e:
+            QMessageBox.warning(self, "GTA IV Model", f"Failed to read {name}:\n{e}")
+            return
+        if not texs:
+            QMessageBox.information(self, "GTA IV Model",
+                f"{name} has no embedded textures - they are in its .wtd.")
+            return
+        self.current_txd_path, self.current_txd_name = file_path, name
+        self.txd_version_str = "RSC5 model"
+        self.txd_game = "GTA IV"
+        self.txd_platform_name = "GTA IV PC"
+        self._show_textures(texs, data, 'iv_model', f"{name} [GTA IV model, {len(texs)} textures, read-only]")
 
     def _open_iv_wtd(self, file_path: str): #vers 2
         """Open a GTA IV .wtd for editing."""
