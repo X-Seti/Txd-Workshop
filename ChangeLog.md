@@ -1,4 +1,7 @@
-#this belongs in root /ChangeLog.md - Version: 234
+#this belongs in root /ChangeLog.md - Version: 235
+
+## Nov 02 2026 - Licence
+- LICENSE changed from GPL v3 to MIT, same as the other IMG Factory tools.
 
 ## Oct 07 2026 - TXD dialogs start folder
 - TXD Workshop export/save/folder/mipmap/bumpmap dialogs start in last used folder (exe folder before); Save As and exports remember folder.

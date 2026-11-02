@@ -17,3 +17,6 @@ apps/themes
 /_internal/
 /*.exe
 .venv/
+/*_dist/
+/Txd_Workshop
+/Txd_Workshop.app/
